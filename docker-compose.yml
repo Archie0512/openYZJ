@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    # 不映射端口到宿主机，仅在 docker 内部网络可达
+    
+    #新增映射内容
+    ports:
+      - "127.0.0.1:27017:27017"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  fastapi:
+    build:
+      context: ./server
+    restart: unless-stopped
+    # 仅暴露到本地回环地址，不对外网开放
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local
