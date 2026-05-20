@@ -38,8 +38,38 @@ async def webhook(
     路径参数 robot_code 作为逻辑路由标识（不参与验签）。
     验签使用 body 中 robotId 对应的 appSecret。
     """
+    # ===== 临时调试日志 START =====
+    print(f"[DEBUG-SIGN] === 收到云之家请求 ===")
+    print(f"[DEBUG-SIGN] robot_code={robot_code}")
+    print(f"[DEBUG-SIGN] sign header={sign}")
+    print(f"[DEBUG-SIGN] sessionId header={sessionId}")
+    print(f"[DEBUG-SIGN] payload.robotId={payload.robotId}")
+    print(f"[DEBUG-SIGN] payload.robotName={payload.robotName}")
+    print(f"[DEBUG-SIGN] payload.operatorOpenid={payload.operatorOpenid}")
+    print(f"[DEBUG-SIGN] payload.operatorName={payload.operatorName}")
+    print(f"[DEBUG-SIGN] payload.time={payload.time} (type={type(payload.time).__name__})")
+    print(f"[DEBUG-SIGN] payload.msgId={payload.msgId}")
+    print(f"[DEBUG-SIGN] payload.content={payload.content}")
+    # ===== 临时调试日志 END =====
+
     # 获取验签密钥
     secret = await get_robot_secret(payload.robotId, db)
+
+    # ===== 临时调试日志 START =====
+    print(f"[DEBUG-SIGN] secret={secret}")
+    from app.core.security import calc_sign
+    _dbg_sha256 = calc_sign(secret, payload.robotId, payload.robotName,
+                            payload.operatorOpenid, payload.operatorName,
+                            str(payload.time), payload.msgId, payload.content, algo="sha256")
+    _dbg_sha1 = calc_sign(secret, payload.robotId, payload.robotName,
+                          payload.operatorOpenid, payload.operatorName,
+                          str(payload.time), payload.msgId, payload.content, algo="sha1")
+    print(f"[DEBUG-SIGN] 服务端计算 SHA256={_dbg_sha256}")
+    print(f"[DEBUG-SIGN] 服务端计算 SHA1  ={_dbg_sha1}")
+    print(f"[DEBUG-SIGN] 云之家发来 sign  ={sign}")
+    print(f"[DEBUG-SIGN] SHA256匹配={_dbg_sha256.rstrip('=') == sign.rstrip('=')}")
+    print(f"[DEBUG-SIGN] SHA1匹配  ={_dbg_sha1.rstrip('=') == sign.rstrip('=')}")
+    # ===== 临时调试日志 END =====
 
     # 双路径签名验证（保留 SHA256 / SHA1 双路径，不改动签名逻辑）
     ok, algo = verify_sign(
