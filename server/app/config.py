@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    # 云之家机器人推送地址
+    yunzhijia_webhook_url: str = "https://www.yunzhijia.com/gateway/robot/webhook/send?yzjtype=12&yzjtoken=e9bab73727104e15b92c7f93254f7bc4"
+
     # 运行环境
     env: str = "dev"
     log_level: str = "INFO"

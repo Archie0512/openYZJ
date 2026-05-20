@@ -41,6 +41,7 @@ async def get_robot_secret(robot_id: str, db) -> str:
 
     doc = await db.robots.find_one({"robotId": robot_id})
     if not doc:
+        print(f"[ROBOT-DISCOVERY] 未注册的 robotId={robot_id}，请通过 admin API 注册")
         raise HTTPException(status_code=401, detail=f"Unknown robotId: {robot_id}")
 
     # 优先解密密文字段
