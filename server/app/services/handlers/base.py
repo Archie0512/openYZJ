@@ -24,6 +24,7 @@ class BaseHandler(ABC):
         payload: YunzhijiaPayload,
         sessionId: str,
         bg: BackgroundTasks,
+        robot_code: str = "",
     ) -> YunzhijiaResponseData:
         """同步路径：返回 3 秒内必须给出的响应数据。
 

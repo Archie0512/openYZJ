@@ -1,10 +1,10 @@
 """命令路由：按 content 前缀匹配命中对应 handler。
 
 匹配规则（大小写不敏感，前缀以空白 / 冒号 / 字符串结尾分隔）：
-  - /ai, #ai      → AIHandler   异步占位
-  - /api, #api    → ApiHandler  同步快速
-  - /echo         → EchoHandler 同步
-  - 其余兜底 → EchoHandler
+  - /ai, #ai      → AIHandler    异步占位
+  - /api, #api    → ApiHandler   同步快速
+  - /echo         → EchoHandler  同步
+  - 其余兜底    → MYS4SHandler 金斗云道闸
 """
 from __future__ import annotations
 
@@ -14,11 +14,13 @@ from app.services.handlers.ai_handler import AIHandler
 from app.services.handlers.api_handler import ApiHandler
 from app.services.handlers.base import BaseHandler
 from app.services.handlers.echo_handler import EchoHandler
+from app.services.handlers.mys4s_handler import MYS4SHandler
 
 # Handler 单例（无状态，可复用）
 _AI = AIHandler()
 _API = ApiHandler()
 _ECHO = EchoHandler()
+_MYS4S = MYS4SHandler()
 
 # 前缀 → handler 映射；按数组顺序匹配，先匹配长前缀
 _HANDLERS: List[Tuple[Tuple[str, ...], BaseHandler]] = [
@@ -26,7 +28,7 @@ _HANDLERS: List[Tuple[Tuple[str, ...], BaseHandler]] = [
     (("/api", "#api"), _API),
     (("/echo",), _ECHO),
 ]
-_DEFAULT: BaseHandler = _ECHO
+_DEFAULT: BaseHandler = _MYS4S  # 默认走金斗云道闸
 
 # 允许出现在前缀之后、与正文之间的分隔符
 _SEPARATORS = (" ", "\t", ":", "：")

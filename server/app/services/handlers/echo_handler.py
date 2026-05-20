@@ -27,6 +27,7 @@ class EchoHandler(BaseHandler):
         payload: YunzhijiaPayload,
         sessionId: str,
         bg: BackgroundTasks,
+        robot_code: str = "",
     ) -> YunzhijiaResponseData:
         """直接回显消息内容，3s 内同步返回。"""
         start = time.monotonic()

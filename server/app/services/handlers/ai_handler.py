@@ -38,6 +38,7 @@ class AIHandler(BaseHandler):
         payload: YunzhijiaPayload,
         sessionId: str,
         bg: BackgroundTasks,
+        robot_code: str = "",
     ) -> YunzhijiaResponseData:
         """主流程：注册后台任务并立即返回占位文本。"""
         # 已经命中本 handler 才会进来，剥离前缀拿到真正的 prompt

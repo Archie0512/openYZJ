@@ -66,7 +66,7 @@ async def get_robot(robot_code: str, db=Depends(get_db)):
 async def update_robot(robot_code: str, req: RobotUpdateReq, db=Depends(get_db)):
     """局部更新机器人字段；提供 appSecret 时重新加密。"""
     update = {"updated_at": datetime.now(timezone.utc)}
-    for field in ("name", "robotId", "status", "description"):
+    for field in ("name", "robotId", "status", "description", "sid", "company_name"):
         v = getattr(req, field)
         if v is not None:
             update[field] = v

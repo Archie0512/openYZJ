@@ -15,6 +15,8 @@ class RobotDoc(BaseModel):
     appSecret_encrypted: str
     status: str = "active"               # active | disabled
     description: Optional[str] = None
+    sid: Optional[str] = None
+    company_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -26,6 +28,8 @@ class RobotCreateReq(BaseModel):
     appSecret: str
     robotId: Optional[str] = None
     description: Optional[str] = None
+    sid: Optional[str] = None
+    company_name: Optional[str] = None
 
 
 class RobotUpdateReq(BaseModel):
@@ -35,6 +39,8 @@ class RobotUpdateReq(BaseModel):
     robotId: Optional[str] = None
     status: Optional[str] = None
     description: Optional[str] = None
+    sid: Optional[str] = None
+    company_name: Optional[str] = None
 
 
 class RobotPublic(BaseModel):
@@ -44,5 +50,7 @@ class RobotPublic(BaseModel):
     name: str
     status: str
     description: Optional[str] = None
+    sid: Optional[str] = None
+    company_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime

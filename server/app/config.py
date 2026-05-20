@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # 云之家机器人推送地址
     yunzhijia_webhook_url: str = "https://www.yunzhijia.com/gateway/robot/webhook/send?yzjtype=12&yzjtoken=e9bab73727104e15b92c7f93254f7bc4"
 
+    # 金斗云道闸 API 配置
+    mys4s_secret_key: str = "085790cd17bc418c84d573aa044a0bb8"
+    mys4s_api_key: str = "baode"
+    mys4s_base_url: str = "https://mys4s.cn/grey/openapi"  # 测试环境；生产环境去掉 /grey
+
     # 运行环境
     env: str = "dev"
     log_level: str = "INFO"

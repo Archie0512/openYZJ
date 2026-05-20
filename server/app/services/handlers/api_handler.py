@@ -37,6 +37,7 @@ class ApiHandler(BaseHandler):
         payload: YunzhijiaPayload,
         sessionId: str,
         bg: BackgroundTasks,
+        robot_code: str = "",
     ) -> YunzhijiaResponseData:
         """同步调用外部 API 并组装回复。"""
         start = time.monotonic()

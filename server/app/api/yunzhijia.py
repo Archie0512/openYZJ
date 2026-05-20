@@ -77,5 +77,5 @@ async def webhook(
     bg.add_task(upsert_session, payload_dict, robot_code, sessionId)
 
     # ── 正式请求走 message_processor 路由调度 ────────
-    data = await message_processor.handle(payload, sessionId, bg)
+    data = await message_processor.handle(payload, sessionId, bg, robot_code=robot_code)
     return YunzhijiaResponse(success=True, data=data)
