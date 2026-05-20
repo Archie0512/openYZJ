@@ -11,7 +11,7 @@ set -euo pipefail
 # ========== 配置区 ==========
 REPO_DIR="${REPO_DIR:-/opt/openyzj}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-# GIT_BRANCH="${GIT_BRANCH:-main}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
 # ===========================
 
 cd "$REPO_DIR"
@@ -19,9 +19,9 @@ cd "$REPO_DIR"
 echo "==> 当前目录: $(pwd)"
 echo "==> 使用 compose 文件: $COMPOSE_FILE"
 
-# echo "==> 拉取最新代码（branch=$GIT_BRANCH）未使用git直接宝塔面板传输的数据"
-# git fetch --all
-# git reset --hard "origin/$GIT_BRANCH"
+echo "==> 拉取最新代码（branch=$GIT_BRANCH）"
+git fetch --all
+git reset --hard "origin/$GIT_BRANCH"
 
 echo "==> 检查 .env 是否存在"
 if [ ! -f .env ]; then
