@@ -16,12 +16,15 @@
 - [ ] **1Panel 中 ibowdex.cn 站点已创建**
   仅申请了 SSL 证书 ≠ 站点可用。必须在 1Panel → 网站 → 列表中能看到站点条目。
 
-- [ ] **服务器防火墙 / 安全组已放行 443/TCP 和 80/TCP**
-  验证方法：服务器管理后台 → 防火墙入方向规则，或：
+- [ ] **路由器端口转发已配置**
+  外网通过路由器端口转发访问内网服务，非直接开放端口。
+  验证方法：路由器管理 → 端口转发/NAT 规则：
+  - 外 8060 → 内 80（HTTP）
+  - 外 8443 → 内 443（HTTPS）
   ```bash
-  # 服务器本地测试
-  curl -I http://ibowdex.cn   # 应返回 301 跳转
-  curl -I https://ibowdex.cn  # 应返回非 502/504
+  # 从外网或本地通过域名验证
+  curl -I http://ibowdex.cn:8060    # 应返回 301 跳转
+  curl -I https://ibowdex.cn:8443   # 应返回非 502/504
   ```
 
 - [ ] **域名 DNS A 记录指向本服务器公网 IP**
@@ -70,6 +73,14 @@
 - [ ] **1Panel 中 OpenResty 日志切割已启用**
   长时间运行日志会很大。1Panel → 网站 → 设置 → 日志切割 → 启用。
 
+- [ ] **1Panel 自动生成的 proxy include 文件已删除**
+  `nginx/ibowdex.cn.conf` 已将反代规则直接写入 `location /`，不再需要 `/www/sites/ibowdex.cn/proxy/*.conf`。
+  如果该目录下有文件，会导致重复代理，需删除。
+
+- [ ] **OpenResty 配置中 HTTPS 跳转和 error_page 带外网端口 8443**
+  由于端口转发，外网访问地址为 `https://ibowdex.cn:8443`（非标准 443）。
+  配置中 `return 301` 和 `error_page 497` 必须包含 `:8443`，否则浏览器会跳转到默认 443 端口而无法访问。
+
 ---
 
 ## 与宝塔版本的关键差异
@@ -80,8 +91,10 @@
 | OpenResty/Nginx 容器名 | 宿主机直接运行 | `1panel-openresty` |
 | 配置语法测试 | `nginx -t`（宿主机） | `docker exec 1panel-openresty openresty -t` |
 | 配置重载 | `nginx -s reload` | `docker exec 1panel-openresty openresty -s reload` |
-| SSL 证书路径 | `/www/server/panel/vhost/cert/` | `/opt/1panel/apps/openresty/openresty/conf/ssl/` |
-| 访问日志路径 | `/www/wwwlogs/` | `/opt/1panel/apps/openresty/openresty/log/` |
+| SSL 证书路径 | `/www/server/panel/vhost/cert/` | `/www/sites/ibowdex.cn/ssl/` |
+| 访问日志路径 | `/www/wwwlogs/` | `/www/sites/ibowdex.cn/log/` |
+| 外网访问端口 | 标准 80/443 | 8060/8443（路由端口转发） |
+| SSL 证书获取方式 | HTTP 验证 | DNS API 验证（端口非标准，无法 HTTP 验证） |
 | swap 需求 | 必须开启（4G 内存兜底） | 8G 内存充裕，可不开 |
 
 ---
@@ -89,7 +102,7 @@
 ## 验收闭环（部署完成后）
 
 - [ ] `curl http://127.0.0.1:8000/health` 返回 `{"app":"ok","mongo":"ok","env":"prod"}`
-- [ ] `curl -fsS https://ibowdex.cn/health` 同上（验证 OpenResty 全链路）
-- [ ] 浏览器访问 `https://ibowdex.cn` 证书锁显示合法
+- [ ] `curl -fsS https://ibowdex.cn:8443/health` 同上（验证 OpenResty 全链路）
+- [ ] 浏览器访问 `https://ibowdex.cn:8443` 证书锁显示合法
 - [ ] `docker exec 1panel-openresty openresty -t` 输出 `syntax is ok`
 - [ ] `docker compose -f docker-compose.prod.yml ps` 所有 service 状态为 `Up (healthy)`

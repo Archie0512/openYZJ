@@ -1,6 +1,8 @@
 # 生产环境部署指南（ibowdex.cn / 国内本地服务器）
 
-> 域名：`https://ibowdex.cn/` | 机器配置：8C8G | 系统：Ubuntu Server 26.04 LTS | 面板：1Panel + OpenResty
+> 域名：`https://ibowdex.cn:8443/` | 机器配置：8C8G | 系统：Ubuntu Server 26.04 LTS | 面板：1Panel + OpenResty
+>
+> **端口转发**：路由器做端口转发，外网 8060→内网 80 / 外网 8443→内网 443。OpenResty 监听内网 80/443，但 HTTPS 跳转和 error_page 497 必须带外网端口 `:8443`。
 >
 > **分支说明**：生产环境对应 `main` 分支。测试环境（kimpi.cn）部署请看 [deploy_test_env.md](deploy_test_env.md)。
 >
@@ -14,7 +16,7 @@
 |---|---------|--------|---------|
 | 0 | **ibowdex.cn ICP 备案有效** | https://beian.miit.gov.cn/ → 公共查询 | 能查到备案号 |
 | 1 | **1Panel 中 ibowdex.cn 站点已创建** | 1Panel → 网站 → 列表 | 存在 `ibowdex.cn` 条目 |
-| 2 | **服务器防火墙/安全组已放行 443、80** | 服务器管理后台 → 防火墙规则 | 80/443 TCP 入方向允许 |
+| 2 | **路由器端口转发已配置** | 路由器管理 → 端口转发/NAT | 外 8060→内 80、外 8443→内 443 |
 | 3 | **域名 DNS A 记录指向本服务器公网 IP** | `dig ibowdex.cn +short` | 返回服务器公网 IP |
 | 4 | **docker 与 docker compose v2 可用** | `docker --version && docker compose version` | 都有版本号 |
 | 5 | **服务器时间已与 NTP 同步** | `timedatectl status` | `System clock synchronized: yes` |
@@ -115,21 +117,25 @@ mongo       Up (healthy)
 
 ---
 
-## 5. 申请 SSL 证书
+## 5. 申请 SSL 证书（DNS API 方式）
+
+由于端口转发导致 HTTP 80 端口非标准（外网 8060），无法使用 HTTP 方式验证域名，需使用 DNS API 方式获取 Let's Encrypt 证书。
 
 1. 1Panel → 网站 → `ibowdex.cn` → 点击 **HTTPS**
-2. 选择证书来源：**申请证书**（Let's Encrypt 免费） 或 **上传已有证书**
-3. 申请成功后，确认证书已启用，面板会自动写入 OpenResty 配置
-4. 开启 **强制 HTTPS**（HTTP 自动跳转到 HTTPS）
+2. 选择证书来源：**申请证书**
+3. 验证方式：选择 **DNS API**（非 HTTP）
+4. 选择 DNS 服务商并填写 API 凭证（如阿里云 DNS 的 AccessKey）
+5. 点击申请，等待验证完成
+6. 开启 **强制 HTTPS**（HTTP 自动跳转到 HTTPS）
 
-记录证书实际路径（用于步骤 6 自定义配置）：
-
-1Panel → 网站 → `ibowdex.cn` → 查看 → SSL 标签 → 显示证书路径，通常格式为：
+证书实际路径：
 
 ```
-/opt/1panel/apps/openresty/openresty/conf/ssl/ibowdex.cn/fullchain.pem
-/opt/1panel/apps/openresty/openresty/conf/ssl/ibowdex.cn/privkey.pem
+/www/sites/ibowdex.cn/ssl/fullchain.pem
+/www/sites/ibowdex.cn/ssl/privkey.pem
 ```
+
+> 注意：DNS API 方式下，`/.well-known/acme-challenge` 路径非必须，但配置中已保留以备将来切换回 HTTP 验证。
 
 ---
 
@@ -146,10 +152,10 @@ mongo       Up (healthy)
 cat /opt/openyzj/nginx/ibowdex.cn.conf
 ```
 
-复制全部内容粘贴进面板配置编辑框，注意：
+配置文件中的路径已与 1Panel 实际路径一致，无需手动替换。关键注意点：
 
-- 将 `ssl_certificate` 和 `ssl_certificate_key` 的路径替换为步骤 5 中记录的实际路径
-- 将日志路径中的占位路径替换为 1Panel 实际日志目录（通常为 `/opt/1panel/apps/openresty/openresty/log/`）
+- **端口 8443**：HTTP→HTTPS 跳转和 error_page 497 必须带 `:8443`，因为外网通过非标准端口访问
+- **proxy include 冲突**：1Panel 默认在 `/www/sites/ibowdex.cn/proxy/` 下生成反代配置文件，本配置已将反代规则直接写入 `location /`，**请删除 1Panel 自动生成的 proxy include 文件**，否则会产生冲突
 
 保存后，点击**重载**或执行：
 
@@ -169,8 +175,8 @@ docker exec 1panel-openresty openresty -s reload
 # 绕过 OpenResty 直连 FastAPI（验证应用层是否 OK）
 curl http://127.0.0.1:8000/health
 
-# 通过域名访问（走 OpenResty + HTTPS，验证全链路）
-curl -fsS https://ibowdex.cn/health
+# 通过域名访问（走 OpenResty + HTTPS + 端口转发，验证全链路）
+curl -fsS https://ibowdex.cn:8443/health
 ```
 
 两条命令都期望返回：
@@ -179,7 +185,7 @@ curl -fsS https://ibowdex.cn/health
 {"app":"ok","mongo":"ok","env":"prod"}
 ```
 
-如果第一条通、第二条不通，问题在 OpenResty 配置；两条都不通，问题在 FastAPI/Docker。
+如果第一条通、第二条不通，问题在 OpenResty 配置或端口转发；两条都不通，问题在 FastAPI/Docker。
 
 ---
 
@@ -189,10 +195,10 @@ curl -fsS https://ibowdex.cn/health
 cd /opt/openyzj
 
 # SHA256 签名测试
-python3 scripts/gen_test_sign.py --domain https://ibowdex.cn --robot-code test --algo sha256
+python3 scripts/gen_test_sign.py --domain https://ibowdex.cn:8443 --robot-code test --algo sha256
 
 # SHA1 签名测试
-python3 scripts/gen_test_sign.py --domain https://ibowdex.cn --robot-code test --algo sha1
+python3 scripts/gen_test_sign.py --domain https://ibowdex.cn:8443 --robot-code test --algo sha1
 ```
 
 两种算法都要跑，任意一种返回以下内容即正常：
@@ -208,13 +214,13 @@ python3 scripts/gen_test_sign.py --domain https://ibowdex.cn --robot-code test -
 1. 登录**云之家开发者后台**
 2. 创建机器人，消息接收地址填：
    ```
-   https://ibowdex.cn/api/yunzhijia/webhook/{robot_code}
+   https://ibowdex.cn:8443/api/yunzhijia/webhook/{robot_code}
    ```
 3. 云之家自动测试通过后下发正式 `appSecret`
 4. 通过 admin API 注册到 robots 集合：
 
 ```bash
-curl -X POST https://ibowdex.cn/api/admin/robots \
+curl -X POST https://ibowdex.cn:8443/api/admin/robots \
   -H "Authorization: Bearer <你的 ADMIN_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"robot_code":"<robot_code>","name":"<机器人名>","appSecret":"<云之家给的 appSecret>"}'
@@ -223,7 +229,7 @@ curl -X POST https://ibowdex.cn/api/admin/robots \
 5. 云之家分配 `robotId` 后补回：
 
 ```bash
-curl -X PUT https://ibowdex.cn/api/admin/robots/<robot_code> \
+curl -X PUT https://ibowdex.cn:8443/api/admin/robots/<robot_code> \
   -H "Authorization: Bearer <ADMIN_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"robotId":"<云之家分配的 robotId>"}'
@@ -236,7 +242,7 @@ curl -X PUT https://ibowdex.cn/api/admin/robots/<robot_code> \
 | 现象 | 排查步骤 |
 |------|---------|
 | `curl /health` 不通 | 1) `docker compose -f docker-compose.prod.yml ps` 看容器状态<br>2) `docker compose -f docker-compose.prod.yml logs fastapi` 看应用日志 |
-| HTTPS 不通 | 1) 确认 1Panel 中 SSL 证书未过期<br>2) 服务器防火墙/安全组 443 是否放行<br>3) `docker exec 1panel-openresty openresty -t` 检查配置语法 |
+| HTTPS 不通 | 1) 确认 1Panel 中 SSL 证书未过期<br>2) 确认路由器端口转发 8443→443 生效<br>3) `docker exec 1panel-openresty openresty -t` 检查配置语法 |
 | 云之家测试失败 | 1) `docker compose -f docker-compose.prod.yml logs --tail 100 fastapi`<br>2) 关注 `sign verification failed` 或 `cost_ms` 超过 2500 |
 | MongoDB 连不上 | `docker compose -f docker-compose.prod.yml logs mongo` 看启动日志 |
 | 容器反复重启 | `docker compose -f docker-compose.prod.yml logs --tail 200` 查退出原因 |
