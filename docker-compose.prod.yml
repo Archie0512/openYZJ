@@ -1,19 +1,24 @@
 # 生产 / 测试机环境专用 compose
 # 与根目录 docker-compose.yml 的差异：
-#   1) mongo 显式传 --wiredTigerCacheSizeGB=1（2C4G 测试机内存兜底）
+#   1) mongo 显式传 --wiredTigerCacheSizeGB（生产8C8G设2G，测试2C4G设1G）
 #   2) 容器日志限额（json-file max-size:10m max-file:3）防磁盘打满
 #   3) fastapi 健康检查 start_period 调高到 30s，给冷启动留时间
 #   4) 不映射 mongo 端口到任何接口，仅在 docker 内部网络访问
 # 使用方式：
 #   docker compose -f docker-compose.prod.yml up -d
 # 与 docker-compose.yml 互斥使用，不要同时跑（共享同一份 mongo_data 卷）
+#
+# 生产环境：8C8G 本地服务器 + 1Panel OpenResty 反代
+# 测试环境：2C4G 香港 ECS + 宝塔 Nginx 反代
+# 部署命令：
+#   docker compose -f docker-compose.prod.yml up -d --build
 
 services:
   fastapi:
     build:
       context: ./server
     restart: unless-stopped
-    # 仅暴露到本地回环地址，由宝塔 Nginx 反代到外网 443
+    # 仅暴露到本地回环地址，由 1Panel OpenResty 反代到外网 443
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
@@ -38,11 +43,11 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
-    # 2C4G 测试机限制 wiredTiger cache 上限 1G，避免与 fastapi 互抢
+    # 内存兜底：生产8C8G设2G，测试2C4G改为1G
     command:
       - --bind_ip_all
       - --wiredTigerCacheSizeGB
-      - "1"
+      - "2"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}

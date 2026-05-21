@@ -1,7 +1,9 @@
 # 测试环境部署指南（kimpi.cn / 阿里云 ECS Ubuntu 22.04）
 
 > 本文档面向**对服务端不太熟悉的同学**，逐步骤引导完成云之家机器人后台的测试环境部署。
-> 域名：`https://kimpi.cn/` | 机器配置：2C4G | 系统已装 git、docker、Node.js、python3、Nginx（宝塔）、QoderCLI
+> 域名：`https://kimpi.cn/` | 机器配置：2C4G | 系统已装 git、docker、python3、Nginx（宝塔）
+>
+> **分支说明**：测试环境对应 `staging` 分支。生产环境（ibowdex.cn）部署请看 [deploy_prod_env.md](deploy_prod_env.md)。
 
 ---
 
@@ -48,7 +50,8 @@
 ```bash
 # SSH 登录 ECS 后执行
 cd /opt
-git clone <你的 Git 仓库地址> openyzj
+# 测试环境拉 staging 分支
+git clone -b staging <你的 Git 仓库地址> openyzj
 ```
 
 **方式 B：scp 上传**
@@ -304,6 +307,10 @@ nginx -t && nginx -s reload
 每次代码更新后，只需在 ECS 上执行：
 ```bash
 cd /opt/openyzj
-./scripts/deploy.sh
+# 确保在 staging 分支上
+git checkout staging
+git pull origin staging
+docker compose -f docker-compose.prod.yml up -d --build
 ```
-脚本会自动拉取最新代码、构建、重启并自检。
+
+> 如果使用了 deploy.sh 脚本，脚本会自动拉取最新代码、构建、重启并自检。
