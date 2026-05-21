@@ -128,12 +128,15 @@ mongo       Up (healthy)
 5. 点击申请，等待验证完成
 6. 开启 **强制 HTTPS**（HTTP 自动跳转到 HTTPS）
 
-证书实际路径：
+证书路径（OpenResty 容器内视角，即配置文件中使用的路径）：
 
 ```
 /www/sites/ibowdex.cn/ssl/fullchain.pem
 /www/sites/ibowdex.cn/ssl/privkey.pem
 ```
+
+> 在宿主机 SSH 中查看时，实际路径为 `/opt/1panel/www/sites/ibowdex.cn/ssl/`。
+> OpenResty 运行在 Docker 容器中，宿主机 `/opt/1panel/www/` 挂载到容器内 `/www/`，配置文件中写容器内路径即可。
 
 > 注意：DNS API 方式下，`/.well-known/acme-challenge` 路径非必须，但配置中已保留以备将来切换回 HTTP 验证。
 

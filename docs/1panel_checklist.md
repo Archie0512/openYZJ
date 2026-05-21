@@ -85,14 +85,17 @@
 
 ## 与宝塔版本的关键差异
 
+> **路径说明**：1Panel 的 OpenResty 运行在 Docker 容器中，宿主机 `/opt/1panel/www/` 挂载到容器内 `/www/`。下表 1Panel 列的路径均为**容器内路径**（即写入 OpenResty 配置文件的路径），在宿主机 SSH 中查看时需加前缀 `/opt/1panel`。
+
 | 项目 | 宝塔（测试环境） | 1Panel（生产环境） |
 |---|---|---|
 | 面板端口 | 8888 | 1Panel 自定义端口 |
 | OpenResty/Nginx 容器名 | 宿主机直接运行 | `1panel-openresty` |
 | 配置语法测试 | `nginx -t`（宿主机） | `docker exec 1panel-openresty openresty -t` |
 | 配置重载 | `nginx -s reload` | `docker exec 1panel-openresty openresty -s reload` |
-| SSL 证书路径 | `/www/server/panel/vhost/cert/` | `/www/sites/ibowdex.cn/ssl/` |
-| 访问日志路径 | `/www/wwwlogs/` | `/www/sites/ibowdex.cn/log/` |
+| SSL 证书路径（配置文件内） | `/www/server/panel/vhost/cert/` | `/www/sites/ibowdex.cn/ssl/` |
+| SSL 证书路径（宿主机实际） | 同上（宿主机运行） | `/opt/1panel/www/sites/ibowdex.cn/ssl/` |
+| 访问日志路径（配置文件内） | `/www/wwwlogs/` | `/www/sites/ibowdex.cn/log/` |
 | 外网访问端口 | 标准 80/443 | 8060/8443（路由端口转发） |
 | SSL 证书获取方式 | HTTP 验证 | DNS API 验证（端口非标准，无法 HTTP 验证） |
 | swap 需求 | 必须开启（4G 内存兜底） | 8G 内存充裕，可不开 |
