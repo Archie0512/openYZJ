@@ -51,6 +51,7 @@ class AIHandler(BaseHandler):
             payload=payload,
             sessionId=sessionId,
             prompt=prompt,
+            robot_code=robot_code,
         )
 
         return YunzhijiaResponseData(type=2, content=PLACEHOLDER_REPLY)
@@ -73,6 +74,7 @@ async def _run_ai(
     payload: YunzhijiaPayload,
     sessionId: str,
     prompt: str,
+    robot_code: str = "",
 ) -> None:
     """后台任务：写 pending → 调 AI → 更新 success/failed → 推送 outbound。"""
     start = time.monotonic()
@@ -101,9 +103,8 @@ async def _run_ai(
                 "cost_ms": cost_ms,
             },
         )
-        # ── 3) 推送结果（v2 占位，当前仅日志） ──
-        # 传入 payload.robotId，与 outbound.push_card_message(robot_id=...) 语义一致
-        await push_card_message(payload.robotId, sessionId, reply)
+        # ── 3) 推送结果 ──
+        await push_card_message(payload.robotId, sessionId, reply, robot_code=robot_code)
         log.info("ai_handler success cost_ms=%d", cost_ms)
     except Exception as e:  # noqa: BLE001
         cost_ms = int((time.monotonic() - start) * 1000)

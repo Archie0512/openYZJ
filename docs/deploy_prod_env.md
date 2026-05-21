@@ -219,23 +219,96 @@ python3 scripts/gen_test_sign.py --domain https://ibowdex.cn:8443 --robot-code t
    ```
    https://ibowdex.cn:8443/api/yunzhijia/webhook/{robot_code}
    ```
+   其中 `{robot_code}` 是你为这只机器人起的代号（例如 `B10ARelease`、`B02ARelease` 等），全英文小写。
+
+   > **多机器人共用同一 webhook 路径**：多台机器人可以配同一个 URL path（如都指向 `/webhook/default`）。
+   > 系统会通过 `payload.robotId` 反查 MongoDB 获取真实 `robot_code`，
+   > 因此即使 URL path 相同，每台机器人的 SID 和推送地址也能正确区分。
+
 3. 云之家自动测试通过后下发正式 `appSecret`
-4. 通过 admin API 注册到 robots 集合：
+
+4. **获取 robotId** — 在云之家群中 @机器人发一条消息，然后查看日志：
+   ```bash
+   docker compose -f docker-compose.prod.yml logs fastapi --tail=20 | grep "ROBOT-DISCOVERY"
+   ```
+   输出类似 `[ROBOT-DISCOVERY] 未注册的 robotId=abc123xyz...`，复制 `robotId` 的值。
+
+5. 通过 admin API 注册机器人到 MongoDB：
+   ```bash
+   curl -X POST https://ibowdex.cn:8443/api/admin/robots \
+     -H "Authorization: Bearer <你的 ADMIN_TOKEN>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "robot_code":"<robot_code>",
+       "name":"<机器人名称>",
+       "appSecret":"<云之家给的 appSecret>",
+       "robotId":"<步骤4获取的 robotId>",
+       "sid":"<可选:金斗云门店 SID>",
+       "company_name":"<可选:公司名称>",
+       "webhook_push_url":"<可选:独立推送地址>"
+     }'
+   ```
+
+   **字段说明：**
+   | 字段 | 必填 | 说明 |
+   |------|------|------|
+   | `robot_code` | 是 | 机器人代号，对应 yzjrob_mys.ini 中的 key |
+   | `name` | 是 | 机器人显示名称 |
+   | `appSecret` | 是 | 云之家下发的正式密钥 |
+   | `robotId` | 是 | 步骤4从日志中获取 |
+   | `sid` | 否 | 金斗云道闸门店 ID，道闸机器人才需填写 |
+   | `company_name` | 否 | 公司名称 |
+   | `webhook_push_url` | 否 | 机器人独立的 outbound 推送地址。不填则使用全局默认 yzjtoken |
+
+6. 如果未在创建时填写 `robotId`，可以后续补回：
+   ```bash
+   curl -X PUT https://ibowdex.cn:8443/api/admin/robots/<robot_code> \
+     -H "Authorization: Bearer <ADMIN_TOKEN>" \
+     -H "Content-Type: application/json" \
+     -d '{"robotId":"<云之家分配的 robotId>"}'
+   ```
+
+---
+
+## 9.5. 配置 MYS4S 道闸机器人 sid 和 company_name
+
+> 仅道闸（金斗云）机器人需要此步骤。如果机器人仅用于 AI 对话或 /echo，可跳过。
+
+### 方式 A：批量预置（推荐）
+
+执行 `scripts/preset_robots.js` 一键更新 `yzjrob_mys.ini` 中已注册的 18 台机器人：
 
 ```bash
-curl -X POST https://ibowdex.cn:8443/api/admin/robots \
-  -H "Authorization: Bearer <你的 ADMIN_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"robot_code":"<robot_code>","name":"<机器人名>","appSecret":"<云之家给的 appSecret>"}'
+# 在服务器上执行（替换 MONGO_PASSWORD 为你的实际密码）
+docker exec -i <mongo容器名> mongosh \
+  -u "$MONGO_USER" -p "$MONGO_PASSWORD" \
+  --authenticationDatabase admin yunzhijia \
+  < /opt/openyzj/scripts/preset_robots.js
 ```
 
-5. 云之家分配 `robotId` 后补回：
+输出示例：
+```
+[OK] B10ARelease → sid=1479 台州好德宝汽车服务有限公司
+[SKIP] B17ARelease — robot_code 不存在于 robots 集合，请先通过 admin API 注册
+```
+
+> `[SKIP]` 表示该机器人尚未在步骤 9 中注册，后续新增时自动跳过，不会报错。
+
+### 方式 B：单条注册
 
 ```bash
 curl -X PUT https://ibowdex.cn:8443/api/admin/robots/<robot_code> \
   -H "Authorization: Bearer <ADMIN_TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"robotId":"<云之家分配的 robotId>"}'
+  -d '{"sid":"1479","company_name":"台州好德宝汽车服务有限公司"}'
+```
+
+### 方式 C：后续新增机器人
+
+在 `yzjrob_mys.ini` 中按格式添加新行后，重新执行方式 A 的脚本即可。
+```ini
+# 格式: <robot_code> = <sid>, <公司全称>
+NewRobotRelease = 99999, XX宝德汽车销售服务有限公司
 ```
 
 ---

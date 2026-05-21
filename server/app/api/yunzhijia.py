@@ -2,6 +2,9 @@
 
 实现签名验证 + 测试请求通道，支持 SHA256/SHA1 双路径校验。
 落库（messages / sessions）通过 FastAPI BackgroundTasks 在响应发出后异步执行，不阻塞 3s 响应窗口。
+
+关键：robot_code 从 payload.robotId 反查 MongoDB 获取真实值，
+而非信任 URL path（多机器人可能共用同一 webhook 路径）。
 """
 from __future__ import annotations
 
@@ -24,6 +27,21 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/yunzhijia", tags=["yunzhijia"])
 
 
+async def _resolve_robot_code(robot_id: str, url_robot_code: str, db) -> str:
+    """通过 robotId 反查 robots 集合获取真实 robot_code。
+
+    多机器人共用同一 webhook URL 时，URL path 中的 robot_code 不可信，
+    必须用 payload.robotId 反查数据库获取真正的 robot_code。
+    若反查失败（新机器人尚未注册），fallback 到 URL path 的 robot_code。
+    """
+    if robot_id == TEST_ROBOT_ID:
+        return url_robot_code
+    doc = await db.robots.find_one({"robotId": robot_id}, {"robot_code": 1})
+    if doc and doc.get("robot_code"):
+        return doc["robot_code"]
+    return url_robot_code
+
+
 @router.post("/webhook/{robot_code}", response_model=YunzhijiaResponse)
 async def webhook(
     robot_code: str,
@@ -34,13 +52,16 @@ async def webhook(
     db=Depends(get_db),
 ):
     """接收云之家消息推送。测试请求跳过验签，正式请求走完整验签。"""
+    # ── 通过 robotId 反查真实 robot_code（多机器人可能共用 URL path） ──
+    resolved_code = await _resolve_robot_code(payload.robotId, robot_code, db)
+
     # ── 测试请求直接返回，不验签 ──────────────────────
     # 原因：测试阶段无公开密钥，云之家用内部密钥签名，仅验证我方响应格式
     is_test = payload.robotId == TEST_ROBOT_ID
     if is_test:
         payload_dict = payload.model_dump()
-        bg.add_task(save_message, payload_dict, robot_code, sessionId, "test-skip", True)
-        bg.add_task(upsert_session, payload_dict, robot_code, sessionId)
+        bg.add_task(save_message, payload_dict, resolved_code, sessionId, "test-skip", True)
+        bg.add_task(upsert_session, payload_dict, resolved_code, sessionId)
         return YunzhijiaResponse(
             success=True,
             data=YunzhijiaResponseData(
@@ -67,15 +88,15 @@ async def webhook(
         raise HTTPException(status_code=401, detail="invalid sign")
 
     log.info(
-        "verified algo=%s robot=%s session=%s content=%s",
-        algo, payload.robotId, sessionId, payload.content,
+        "verified algo=%s robot=%s code=%s session=%s content=%s",
+        algo, payload.robotId, resolved_code, sessionId, payload.content,
     )
 
     # ── 落库副作用（响应发出后执行）──────────────────
     payload_dict = payload.model_dump()
-    bg.add_task(save_message, payload_dict, robot_code, sessionId, algo, False)
-    bg.add_task(upsert_session, payload_dict, robot_code, sessionId)
+    bg.add_task(save_message, payload_dict, resolved_code, sessionId, algo, False)
+    bg.add_task(upsert_session, payload_dict, resolved_code, sessionId)
 
     # ── 正式请求走 message_processor 路由调度 ────────
-    data = await message_processor.handle(payload, sessionId, bg, robot_code=robot_code)
+    data = await message_processor.handle(payload, sessionId, bg, robot_code=resolved_code)
     return YunzhijiaResponse(success=True, data=data)

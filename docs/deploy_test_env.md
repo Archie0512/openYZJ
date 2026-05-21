@@ -228,15 +228,29 @@ python3 scripts/gen_test_sign.py --domain https://kimpi.cn --robot-code test --a
 
 3. 提交后云之家会自动发起测试请求 → 我们后台会用 `test-secret` 验签并返回欢迎语 → 测试通过后云之家会下发**正式 appSecret**
 
-4. 把云之家给的正式 `appSecret` 通过 admin API 注册到 robots 集合：
+4. **获取 robotId** — 在云之家群中 @机器人发一条消息，然后查看日志：
+   ```bash
+   docker compose -f docker-compose.prod.yml logs fastapi --tail=20 | grep "ROBOT-DISCOVERY"
+   ```
+   输出类似 `[ROBOT-DISCOVERY] 未注册的 robotId=abc123xyz...`，复制 `robotId` 的值。
+
+5. 把云之家给的正式 `appSecret` 和 robotId 通过 admin API 注册到 robots 集合：
    ```bash
    curl -X POST https://kimpi.cn/api/admin/robots \
      -H "Authorization: Bearer <你的 ADMIN_TOKEN>" \
      -H "Content-Type: application/json" \
-     -d '{"robot_code":"<robot_code>","name":"<机器人名>","appSecret":"<云之家给的 appSecret>"}'
+     -d '{
+       "robot_code":"<robot_code>",
+       "name":"<机器人名>",
+       "appSecret":"<云之家给的 appSecret>",
+       "robotId":"<步骤4获取的 robotId>",
+       "sid":"<可选:金斗云门店 SID>",
+       "company_name":"<可选:公司名称>",
+       "webhook_push_url":"<可选:独立推送地址>"
+     }'
    ```
 
-5. 等云之家分配 `robotId` 后再补回（也可以等第一次真实消息从日志里看到 robotId 后再补）：
+6. 如果需要补填 robotId 或更新其他字段（sid/company_name 等）：
    ```bash
    curl -X PUT https://kimpi.cn/api/admin/robots/<robot_code> \
      -H "Authorization: Bearer <ADMIN_TOKEN>" \

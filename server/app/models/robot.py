@@ -17,6 +17,7 @@ class RobotDoc(BaseModel):
     description: Optional[str] = None
     sid: Optional[str] = None
     company_name: Optional[str] = None
+    webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -30,6 +31,7 @@ class RobotCreateReq(BaseModel):
     description: Optional[str] = None
     sid: Optional[str] = None
     company_name: Optional[str] = None
+    webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
 
 
 class RobotUpdateReq(BaseModel):
@@ -41,6 +43,7 @@ class RobotUpdateReq(BaseModel):
     description: Optional[str] = None
     sid: Optional[str] = None
     company_name: Optional[str] = None
+    webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
 
 
 class RobotPublic(BaseModel):
@@ -52,5 +55,6 @@ class RobotPublic(BaseModel):
     description: Optional[str] = None
     sid: Optional[str] = None
     company_name: Optional[str] = None
+    webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
     created_at: datetime
     updated_at: datetime

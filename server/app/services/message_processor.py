@@ -60,4 +60,5 @@ async def handle(
         return result
     except Exception:  # noqa: BLE001
         log.exception("handler=%s crashed", handler.name)
-        return YunzhijiaResponseData(type=2, content=FALLBACK_TEXT)
+        fallback = f"哎呀,出现了点小问题,要不等会再试试？(机器人:{robot_code})" if robot_code else FALLBACK_TEXT
+        return YunzhijiaResponseData(type=2, content=fallback)

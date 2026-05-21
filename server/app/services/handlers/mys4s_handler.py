@@ -45,7 +45,7 @@ class MYS4SHandler(BaseHandler):
         if not car_no:
             return YunzhijiaResponseData(
                 type=2,
-                content="请输入正确格式：车牌号 事由\n例如：沪A12345 来访接待",
+                content=f"请输入正确格式：车牌号 事由\n例如：沪A12345 来访接待\n[机器人:{robot_code}]",
             )
 
         # 2. 查 sid
