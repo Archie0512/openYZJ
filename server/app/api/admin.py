@@ -27,7 +27,11 @@ router = APIRouter(
 
 def _to_public(doc: dict) -> RobotPublic:
     """从 mongo doc 投影到对外安全视图，剥离敏感字段。"""
-    return RobotPublic(**{k: doc.get(k) for k in RobotPublic.model_fields.keys()})
+    data = {k: doc.get(k) for k in RobotPublic.model_fields.keys()}
+    # 兼容旧文档：缺少 allowed_handlers 字段时兜底为空列表
+    if data.get("allowed_handlers") is None:
+        data["allowed_handlers"] = []
+    return RobotPublic(**data)
 
 
 @router.post("/robots", response_model=RobotPublic)
@@ -44,6 +48,7 @@ async def create_robot(req: RobotCreateReq, db=Depends(get_db)):
         sid=req.sid,
         company_name=req.company_name,
         webhook_push_url=req.webhook_push_url,
+        allowed_handlers=req.allowed_handlers,
     ).model_dump()
     await db.robots.insert_one(doc)
     return _to_public(doc)
@@ -75,6 +80,8 @@ async def update_robot(robot_code: str, req: RobotUpdateReq, db=Depends(get_db))
             update[field] = v
     if req.appSecret is not None:
         update["appSecret_encrypted"] = encrypt_secret(req.appSecret)
+    if req.allowed_handlers is not None:
+        update["allowed_handlers"] = req.allowed_handlers
     res = await db.robots.find_one_and_update(
         {"robot_code": robot_code},
         {"$set": update},
