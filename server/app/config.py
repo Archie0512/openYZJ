@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     env: str = "dev"
     log_level: str = "INFO"
 
+    # 对外访问域名
+    base_url: str = "https://ibowdex.cn"
+
+    # 出门单 PNG 存储目录
+    passes_dir: str = "static/passes"
+
     @property
     def mongo_uri(self) -> str:
         """构造 MongoDB 连接 URI（使用 admin 库进行身份验证）。"""

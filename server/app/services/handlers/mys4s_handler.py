@@ -71,6 +71,17 @@ class MYS4SHandler(BaseHandler):
                 # 根据返回结构组装更详细的回复
                 if result.get("code") == 0 or result.get("success"):
                     reply = f"通行证发送成功\n车牌：{car_no}\n事由：{service}\n操作人：{payload.operatorName}"
+                    # 检查是否为无牌车，生成二维码 PNG
+                    api_data = result.get("data", {})
+                    info = api_data.get("Info", "")
+                    if "无" in info:
+                        try:
+                            from app.services.qrcode_generator import generate_pass_png
+                            company_name = await _get_company_name(robot_code)
+                            png_path = generate_pass_png(api_data, company_name)
+                            reply += f"\n\n出门二维码：{settings.base_url}{png_path}"
+                        except Exception as e:
+                            log.warning("生成二维码失败: %s", e)
                 else:
                     msg = result.get("msg") or result.get("message") or str(result)
                     reply = f"发送失败：{msg}"
@@ -124,6 +135,17 @@ async def _get_sid(robot_code: str) -> Optional[str]:
     if doc and doc.get("sid"):
         return str(doc["sid"])
     return None
+
+
+async def _get_company_name(robot_code: str) -> str:
+    """从 robots 集合中查找 robot_code 对应的门店名称。"""
+    if not robot_code:
+        return ""
+    db = mongodb.get_db()
+    doc = await db.robots.find_one({"robot_code": robot_code}, {"company_name": 1})
+    if doc and doc.get("company_name"):
+        return str(doc["company_name"])
+    return ""
 
 
 def _generate_sign(params: dict) -> str:
