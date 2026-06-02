@@ -23,7 +23,7 @@ from app.services.storage import save_command_log
 log = logging.getLogger(__name__)
 
 # 车牌正则：省份简称 + 字母 + 5-6位字母数字
-_PLATE_RE = re.compile(r"([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Za-z][A-Za-z0-9]{5,6})")
+_PLATE_RE = re.compile(r"([京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁无][A-Za-z][A-Za-z0-9]{5,6})")
 
 
 class MYS4SHandler(BaseHandler):
