@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from starlette.staticfiles import StaticFiles
 
 from app.api import health, yunzhijia
 from app.api import admin
@@ -42,3 +44,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(yunzhijia.router)
 app.include_router(admin.router)
+
+# 挂载静态文件目录（放在路由注册之后，避免前缀匹配拦截其他路由）
+os.makedirs("static/passes", exist_ok=True)
+app.mount("/static/passes", StaticFiles(directory="static/passes"), name="passes")
