@@ -23,6 +23,7 @@ from app.services.command_router import route
 from app.services.handlers.ai_handler import AIHandler
 from app.services.handlers.api_handler import ApiHandler
 from app.services.handlers.echo_handler import EchoHandler
+from app.services.handlers.mys4s_handler import MYS4SHandler
 
 
 # ── /ai 前缀 → AIHandler ────────────────────────
@@ -67,25 +68,25 @@ def test_route_echo():
     assert h.name == "echo"
 
 
-# ── 默认 → EchoHandler ──────────────────────────
+# ── 默认 → MYS4SHandler ─────────────────────────
 def test_route_default_text():
     h = route("hello")
-    assert isinstance(h, EchoHandler)
+    assert isinstance(h, MYS4SHandler)
 
 def test_route_empty():
     h = route("")
-    assert isinstance(h, EchoHandler)
+    assert isinstance(h, MYS4SHandler)
 
 def test_route_none():
     h = route(None)
-    assert isinstance(h, EchoHandler)
+    assert isinstance(h, MYS4SHandler)
 
 
 # ── 边界：/apixxx 不应误命中 /api ────────────────
 def test_route_no_false_positive():
     """确保 /apixxx 不命中 /api（需要分隔符才匹配）。"""
     h = route("/apixyz")
-    assert isinstance(h, EchoHandler), "/apixyz should NOT match /api"
+    assert isinstance(h, MYS4SHandler), "/apixyz should NOT match /api"
 
 
 if __name__ == "__main__":

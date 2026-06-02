@@ -1,6 +1,6 @@
 """机器人配置 Pydantic v2 模型组。"""
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,6 +18,7 @@ class RobotDoc(BaseModel):
     sid: Optional[str] = None
     company_name: Optional[str] = None
     webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
+    allowed_handlers: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -32,6 +33,7 @@ class RobotCreateReq(BaseModel):
     sid: Optional[str] = None
     company_name: Optional[str] = None
     webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
+    allowed_handlers: List[str] = []
 
 
 class RobotUpdateReq(BaseModel):
@@ -44,6 +46,7 @@ class RobotUpdateReq(BaseModel):
     sid: Optional[str] = None
     company_name: Optional[str] = None
     webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
+    allowed_handlers: Optional[List[str]] = None
 
 
 class RobotPublic(BaseModel):
@@ -56,5 +59,6 @@ class RobotPublic(BaseModel):
     sid: Optional[str] = None
     company_name: Optional[str] = None
     webhook_push_url: Optional[str] = None   # 每台机器人的独立推送地址（yzjtoken 不同）
+    allowed_handlers: List[str] = []
     created_at: datetime
     updated_at: datetime

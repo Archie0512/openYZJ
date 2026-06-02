@@ -27,19 +27,21 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/yunzhijia", tags=["yunzhijia"])
 
 
-async def _resolve_robot_code(robot_id: str, url_robot_code: str, db) -> str:
-    """通过 robotId 反查 robots 集合获取真实 robot_code。
+async def _resolve_robot_code(robot_id: str, url_robot_code: str, db) -> tuple[str, list]:
+    """通过 robotId 反查 robots 集合获取真实 robot_code 和 allowed_handlers。
 
     多机器人共用同一 webhook URL 时，URL path 中的 robot_code 不可信，
     必须用 payload.robotId 反查数据库获取真正的 robot_code。
     若反查失败（新机器人尚未注册），fallback 到 URL path 的 robot_code。
     """
     if robot_id == TEST_ROBOT_ID:
-        return url_robot_code
-    doc = await db.robots.find_one({"robotId": robot_id}, {"robot_code": 1})
+        return url_robot_code, []
+    doc = await db.robots.find_one(
+        {"robotId": robot_id}, {"robot_code": 1, "allowed_handlers": 1}
+    )
     if doc and doc.get("robot_code"):
-        return doc["robot_code"]
-    return url_robot_code
+        return doc["robot_code"], doc.get("allowed_handlers", [])
+    return url_robot_code, []
 
 
 @router.post("/webhook/{robot_code}", response_model=YunzhijiaResponse)
@@ -53,7 +55,7 @@ async def webhook(
 ):
     """接收云之家消息推送。测试请求跳过验签，正式请求走完整验签。"""
     # ── 通过 robotId 反查真实 robot_code（多机器人可能共用 URL path） ──
-    resolved_code = await _resolve_robot_code(payload.robotId, robot_code, db)
+    resolved_code, allowed_handlers = await _resolve_robot_code(payload.robotId, robot_code, db)
 
     # ── 测试请求直接返回，不验签 ──────────────────────
     # 原因：测试阶段无公开密钥，云之家用内部密钥签名，仅验证我方响应格式
@@ -98,5 +100,5 @@ async def webhook(
     bg.add_task(upsert_session, payload_dict, resolved_code, sessionId)
 
     # ── 正式请求走 message_processor 路由调度 ────────
-    data = await message_processor.handle(payload, sessionId, bg, robot_code=resolved_code)
+    data = await message_processor.handle(payload, sessionId, bg, robot_code=resolved_code, allowed_handlers=allowed_handlers)
     return YunzhijiaResponse(success=True, data=data)

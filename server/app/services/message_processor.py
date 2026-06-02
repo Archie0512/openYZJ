@@ -32,6 +32,7 @@ async def handle(
     sessionId: str,
     bg: BackgroundTasks,
     robot_code: str = "",
+    allowed_handlers: list = None,
 ) -> YunzhijiaResponseData:
     """路由并执行匹配的 handler。
 
@@ -44,6 +45,12 @@ async def handle(
         "routed to handler=%s for content=%s",
         handler.name, clean_content[:50],
     )
+    # 白名单检查：非空列表时校验 handler 是否被允许
+    if allowed_handlers and handler.name not in allowed_handlers:
+        return YunzhijiaResponseData(
+            type=2,
+            content=f"当前机器人不支持「{handler.name}」功能"
+        )
     # 临时将 payload.content 替换为 clean_content 传给 handler
     original_content = payload.content
     payload.content = clean_content
