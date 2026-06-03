@@ -1,7 +1,9 @@
 """云之家消息请求与响应的 Pydantic v2 模型。"""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Optional, List
+
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class YunzhijiaPayload(BaseModel):
@@ -17,15 +19,33 @@ class YunzhijiaPayload(BaseModel):
     content: str = Field(..., description="消息内容")
 
 
+class CardBaseInfo(BaseModel):
+    templateId: str
+    dataContent: str  # JSON 字符串
+
+
+class CardParam(BaseModel):
+    baseInfo: CardBaseInfo
+    personInfoList: Optional[List[dict]] = None
+    outTrackId: Optional[str] = None
+    appId: Optional[str] = None
+
+
 class YunzhijiaResponseData(BaseModel):
     """响应中 data 字段嵌套结构。"""
 
+    model_config = ConfigDict(exclude_none=True)
+
     type: int = Field(2, description="消息类型，文本=2，卡片=25")
     content: str = Field(..., description="返回的消息内容")
+    forwardControl: Optional[str] = None  # "0"允许转发/"2"禁止
+    param: Optional[CardParam] = None     # type=25 时必填
 
 
 class YunzhijiaResponse(BaseModel):
     """云之家 Webhook 标准响应模型。"""
+
+    model_config = ConfigDict(exclude_none=True)
 
     success: bool = True
     data: YunzhijiaResponseData

@@ -1,6 +1,7 @@
 """FastAPI 应用入口。"""
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from app.api import admin
 from app.config import settings
 from app.db import mongodb
 from app.db.indexes import ensure_indexes
+from app.services.pass_cleanup import cleanup_expired_passes
 
 # 配置日志
 logging.basicConfig(
@@ -22,6 +24,13 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+async def _cleanup_loop():
+    """后台定时任务：每 10 分钟清理超过 1 小时的 PNG 文件。"""
+    while True:
+        await asyncio.sleep(600)  # 10 分钟
+        cleanup_expired_passes()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时连接 MongoDB 并初始化索引，关闭时释放连接。"""
@@ -29,6 +38,7 @@ async def lifespan(app: FastAPI):
     await mongodb.connect()
     await ensure_indexes(mongodb.get_db())
     log.info("MongoDB 已就绪")
+    asyncio.create_task(_cleanup_loop())
     yield
     await mongodb.close()
     log.info("应用关闭完成")

@@ -44,7 +44,7 @@ async def _resolve_robot_code(robot_id: str, url_robot_code: str, db) -> tuple[s
     return url_robot_code, []
 
 
-@router.post("/webhook/{robot_code}", response_model=YunzhijiaResponse)
+@router.post("/webhook/{robot_code}", response_model=YunzhijiaResponse, response_model_exclude_none=True)
 async def webhook(
     robot_code: str,
     payload: YunzhijiaPayload,

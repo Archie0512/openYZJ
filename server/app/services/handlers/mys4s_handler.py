@@ -16,8 +16,15 @@ import httpx
 from app.config import settings
 from app.db import mongodb
 from app.models.command_log import ApiCallLog, CommandLogDoc
-from app.models.yunzhijia import YunzhijiaPayload, YunzhijiaResponseData
+from app.models.yunzhijia import (
+    CardBaseInfo,
+    CardParam,
+    YunzhijiaPayload,
+    YunzhijiaResponseData,
+)
+from app.services.card_builder import build_pass_card_data
 from app.services.handlers.base import BaseHandler
+from app.services.qrcode_generator import generate_qrcode_png
 from app.services.storage import save_command_log
 
 log = logging.getLogger(__name__)
@@ -81,12 +88,45 @@ class MYS4SHandler(BaseHandler):
                     info = api_data.get("Info", "")
                     if "无" in info:
                         try:
-                            from app.services.qrcode_generator import generate_pass_png
+                            png_path = generate_qrcode_png(api_data)
+                            qr_url = f"{settings.base_url}{png_path}"
+
                             company_name = await _get_company_name(robot_code)
-                            png_path = generate_pass_png(api_data, company_name)
-                            reply += f"\n\n出门二维码：{settings.base_url}{png_path}"
+                            data_content = build_pass_card_data(
+                                pass_data=api_data,
+                                company_name=company_name,
+                                car_no=car_no,
+                                service=service,
+                                qr_image_url=qr_url,
+                            )
+
+                            # 无牌车提前写 command_log 再返回卡片
+                            bg.add_task(
+                                _write_command_log,
+                                payload=payload,
+                                sessionId=sessionId,
+                                reply_content=reply,
+                                cost_ms=cost_ms,
+                                status="success",
+                                error_msg=None,
+                                car_no=car_no,
+                                service=service,
+                                sid=sid,
+                            )
+
+                            return YunzhijiaResponseData(
+                                type=25,
+                                content=reply,
+                                forwardControl="2",
+                                param=CardParam(
+                                    baseInfo=CardBaseInfo(
+                                        templateId=settings.mys4s_card_template_id,
+                                        dataContent=data_content,
+                                    )
+                                ),
+                            )
                         except Exception as e:
-                            log.warning("生成二维码失败: %s", e)
+                            log.warning("生成二维码/卡片失败: %s", e)
                 else:
                     msg = result.get("msg") or result.get("message") or str(result)
                     reply = f"发送失败：{msg}"

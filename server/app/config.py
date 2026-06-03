@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # 出门单 PNG 存储目录
     passes_dir: str = "static/passes"
 
+    # 卡片消息模板 ID（云之家平台注册的模板）
+    mys4s_card_template_id: str = "6a1ff701e4b0bd1d0dce47b9"
+
     @property
     def mongo_uri(self) -> str:
         """构造 MongoDB 连接 URI（使用 admin 库进行身份验证）。"""
