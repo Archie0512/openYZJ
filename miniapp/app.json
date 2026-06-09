@@ -1,0 +1,9 @@
+{
+  "logo": "logo.png",
+  "window": {
+    "navigationBarBackgroundColor": "#1989fa",
+    "navigationBarTextStyle": "white",
+    "navigationStyle": "default",
+    "backgroundColor": "#f7f8fa"
+  }
+}

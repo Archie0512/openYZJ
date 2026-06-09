@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     mys4s_api_key: str = "baode"
     mys4s_base_url: str = "https://mys4s.cn/grey/openapi"  # 测试环境；生产环境去掉 /grey
 
+    # 开放 API 配置
+    open_api_enabled: bool = True
+    open_api_rate_limit: int = 100  # 默认每分钟请求上限
+
     # 运行环境
     env: str = "dev"
     log_level: str = "INFO"

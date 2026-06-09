@@ -1,0 +1,124 @@
+<!-- 申请记录页 -->
+<div class="navbar">
+  <span class="back-btn" onclick="navigateTo('/home')">‹</span>
+  <span>申请记录</span>
+</div>
+
+<div class="page">
+  <div id="historyList">
+    <div class="loading">加载中...</div>
+  </div>
+
+  <div class="load-more" id="loadMoreWrap" style="display:none;">
+    <button class="btn btn-outline btn-sm" id="loadMoreBtn" onclick="loadMoreHistory()">加载更多</button>
+  </div>
+</div>
+
+<script>
+var _historyPage = 1;
+var _historySize = 10;
+var _historyEnd = false;
+
+function initPasscardHistoryPage() {
+  _historyPage = 1;
+  _historyEnd = false;
+  document.getElementById('historyList').innerHTML = '';
+  fetchHistory();
+}
+
+function fetchHistory() {
+  var listEl = document.getElementById('historyList');
+  var loadMoreWrap = document.getElementById('loadMoreWrap');
+
+  if (_historyPage === 1) {
+    showLoading(listEl);
+  }
+
+  api.getHistory(_historyPage, _historySize)
+    .then(function (res) {
+      var items = (res.data && res.data.items) || (res.data && res.data.records) || [];
+
+      if (_historyPage === 1) {
+        listEl.innerHTML = '';
+      }
+
+      if (items.length === 0 && _historyPage === 1) {
+        listEl.innerHTML = '<div class="empty"><div class="icon">📭</div><p>暂无申请记录</p></div>';
+        loadMoreWrap.style.display = 'none';
+        return;
+      }
+
+      items.forEach(function (item) {
+        listEl.appendChild(createHistoryItem(item));
+      });
+
+      if (items.length < _historySize) {
+        _historyEnd = true;
+        loadMoreWrap.style.display = 'none';
+      } else {
+        loadMoreWrap.style.display = 'block';
+      }
+    })
+    .catch(function (err) {
+      if (_historyPage === 1) {
+        listEl.innerHTML = '<div class="empty"><div class="icon">😵</div><p>加载失败: ' + (err.message || '') + '</p></div>';
+      } else {
+        showToast('加载失败');
+      }
+    });
+}
+
+function loadMoreHistory() {
+  if (_historyEnd) return;
+  _historyPage++;
+  var btn = document.getElementById('loadMoreBtn');
+  setBtnLoading(btn, true, '加载中...');
+  api.getHistory(_historyPage, _historySize)
+    .then(function (res) {
+      var items = (res.data && res.data.items) || (res.data && res.data.records) || [];
+      var listEl = document.getElementById('historyList');
+      items.forEach(function (item) {
+        listEl.appendChild(createHistoryItem(item));
+      });
+      if (items.length < _historySize) {
+        _historyEnd = true;
+        document.getElementById('loadMoreWrap').style.display = 'none';
+      }
+    })
+    .catch(function () {
+      showToast('加载失败');
+      _historyPage--;
+    })
+    .finally(function () {
+      setBtnLoading(btn, false);
+      btn.textContent = '加载更多';
+    });
+}
+
+function createHistoryItem(item) {
+  var el = document.createElement('div');
+  el.className = 'list-item';
+  el.onclick = function () {
+    var id = item._id || item.id || item.msgId || '';
+    navigateTo('/passcard/detail', { id: id });
+  };
+
+  var statusText = '已发送';
+  var tagClass = 'tag-success';
+  if (item.status === 'expired') {
+    statusText = '已过期';
+    tagClass = 'tag-warning';
+  } else if (item.status === 'pending') {
+    statusText = '处理中';
+    tagClass = 'tag-info';
+  }
+
+  el.innerHTML = '<div class="info">'
+    + '<div class="title">' + (item.car_no || '-') + '</div>'
+    + '<div class="desc">' + (item.service || '') + ' · ' + formatDateTime(item.created_at || item.send_time) + '</div>'
+    + '</div>'
+    + '<span class="status-tag ' + tagClass + '">' + statusText + '</span>';
+
+  return el;
+}
+</script>

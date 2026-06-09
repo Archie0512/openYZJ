@@ -1,0 +1,80 @@
+<!-- 通行证详情页 -->
+<div class="navbar">
+  <span class="back-btn" onclick="navigateTo('/home')">‹</span>
+  <span>通行证详情</span>
+</div>
+
+<div class="page">
+  <div class="card">
+    <div class="detail-header">
+      <h2 id="detailTitle">出门单</h2>
+    </div>
+
+    <!-- 二维码 -->
+    <div class="qr-container" id="qrContainer" style="display:none;">
+      <img id="qrImage" src="" alt="二维码">
+    </div>
+
+    <!-- 信息列表 -->
+    <div class="info-list" id="infoList">
+      <div class="loading">加载中...</div>
+    </div>
+
+    <div class="detail-footer">
+      宝德企业集团，欢迎再次光临！
+    </div>
+  </div>
+</div>
+
+<script>
+function initPasscardDetailPage() {
+  var passId = getHashParam('id');
+  var carNo = getHashParam('car_no');
+  var service = getHashParam('service');
+
+  // 如果有直接传入的参数（从提交页跳转），先显示基本信息
+  if (carNo) {
+    renderDetailInfo({
+      car_no: decodeURIComponent(carNo),
+      service: decodeURIComponent(service || ''),
+    });
+  }
+
+  // 如果有 passId，从 API 获取完整信息
+  if (passId) {
+    document.getElementById('detailTitle').textContent = '出门单 #' + passId.slice(-6);
+    api.getPasscard(passId)
+      .then(function (res) {
+        if (res.data) renderDetailInfo(res.data);
+      })
+      .catch(function (err) {
+        console.error('[Detail] 获取失败:', err);
+      });
+  }
+}
+
+function renderDetailInfo(data) {
+  var infoList = document.getElementById('infoList');
+
+  // 二维码
+  if (data.qr_url) {
+    var qrContainer = document.getElementById('qrContainer');
+    var qrImage = document.getElementById('qrImage');
+    qrContainer.style.display = 'flex';
+    qrImage.src = data.qr_url;
+  }
+
+  var rows = [
+    { label: '门店', value: data.company_name || data.sid || '-' },
+    { label: '车牌', value: data.car_no || '-' },
+    { label: '事由', value: data.service || '-' },
+    { label: '发放时间', value: formatDateTime(data.created_at || data.send_time) },
+    { label: '截止时间', value: formatDateTime(data.expire_at || data.expire_time) },
+    { label: '备注', value: data.operator_name || data.remark || '-' },
+  ];
+
+  infoList.innerHTML = rows.map(function (r) {
+    return '<div class="info-row"><span class="label">' + r.label + '</span><span class="value">' + r.value + '</span></div>';
+  }).join('');
+}
+</script>

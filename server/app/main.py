@@ -11,6 +11,7 @@ from starlette.staticfiles import StaticFiles
 
 from app.api import health, yunzhijia
 from app.api import admin
+from app.api import open_api
 from app.config import settings
 from app.db import mongodb
 from app.db.indexes import ensure_indexes
@@ -54,6 +55,10 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(yunzhijia.router)
 app.include_router(admin.router)
+
+# 开放 API 路由（可通过配置开关控制）
+if settings.open_api_enabled:
+    app.include_router(open_api.router)
 
 # 挂载静态文件目录（放在路由注册之后，避免前缀匹配拦截其他路由）
 os.makedirs(settings.passes_dir, exist_ok=True)

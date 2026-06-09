@@ -1,0 +1,32 @@
+<!-- 首页 -->
+<div class="navbar">
+  <span>宝德通行证</span>
+</div>
+
+<div class="page">
+  <div class="card" style="text-align: center; padding: 24px;">
+    <h2 style="font-size: 18px; margin-bottom: 4px;">欢迎使用</h2>
+    <p style="color: var(--gray-6); font-size: 13px;">宝德企业集团通行证管理系统</p>
+  </div>
+
+  <div class="grid">
+    <div class="grid-item" onclick="navigateTo('/passcard')">
+      <span class="icon">📝</span>
+      <span class="label">申请通行证</span>
+    </div>
+    <div class="grid-item" onclick="navigateTo('/passcard/history')">
+      <span class="icon">📋</span>
+      <span class="label">申请记录</span>
+    </div>
+  </div>
+
+  <div style="margin-top: 24px; text-align: center;">
+    <button class="btn btn-outline btn-sm" onclick="logout()" style="width: auto; padding: 0 20px;">退出登录</button>
+  </div>
+</div>
+
+<script>
+function initHomePage() {
+  // 首页无需额外初始化
+}
+</script>

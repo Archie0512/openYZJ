@@ -1,17 +1,12 @@
 """金斗云道闸 Handler：解析车牌+事由，调用 MYS4S API 发送通行证。"""
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import logging
 import re
 import time
-import urllib.parse
 from typing import List, Optional, Tuple
 
 from fastapi import BackgroundTasks
-import httpx
 
 from app.config import settings
 from app.db import mongodb
@@ -24,7 +19,7 @@ from app.models.yunzhijia import (
 )
 from app.services.card_builder import build_pass_card_data
 from app.services.handlers.base import BaseHandler
-from app.services.qrcode_generator import generate_qrcode_png
+from app.services.passcard_service import send_passcard
 from app.services.storage import save_command_log
 
 log = logging.getLogger(__name__)
@@ -49,7 +44,7 @@ class MYS4SHandler(BaseHandler):
         bg: BackgroundTasks,
         robot_code: str = "",
     ) -> YunzhijiaResponseData:
-        """解析车牌+事由，查 sid，调用金斗云 API。"""
+        """解析车牌+事由，查 sid，调用金斗云 API（通过 passcard_service）。"""
         start = time.monotonic()
 
         # 1. 解析车牌和事由
@@ -68,76 +63,64 @@ class MYS4SHandler(BaseHandler):
                 content=f"当前机器人({robot_code})未配置门店 SID，请联系管理员",
             )
 
-        # 3. 调用金斗云 API
-        try:
-            result = await _call_mys4s_api(
-                car_no=car_no,
-                service=service,
-                user_tel="",
-                sid=sid,
-                desc=payload.operatorName,
-            )
-            cost_ms = int((time.monotonic() - start) * 1000)
+        # 3. 调用 passcard_service
+        result = await send_passcard(
+            car_no=car_no,
+            service=service,
+            sid=sid,
+            operator_name=payload.operatorName,
+        )
+        cost_ms = int((time.monotonic() - start) * 1000)
+
+        if result.get("success"):
             reply = f"通行证发送成功\n车牌：{car_no}\n事由：{service}\n操作人：{payload.operatorName}"
-            if isinstance(result, dict):
-                # 根据返回结构组装更详细的回复
-                if result.get("code") == 0 or result.get("success"):
-                    reply = f"通行证发送成功\n车牌：{car_no}\n事由：{service}\n操作人：{payload.operatorName}"
-                    # 检查是否为无牌车，生成二维码 PNG
-                    api_data = result.get("data", {})
-                    info = api_data.get("Info", "")
-                    if "无" in info:
-                        try:
-                            png_path = generate_qrcode_png(api_data)
-                            qr_url = f"{settings.base_url}{png_path}"
-
-                            company_name = await _get_company_name(robot_code)
-                            data_content = build_pass_card_data(
-                                pass_data=api_data,
-                                company_name=company_name,
-                                car_no=car_no,
-                                service=service,
-                                qr_image_url=qr_url,
-                            )
-
-                            # 无牌车提前写 command_log 再返回卡片
-                            bg.add_task(
-                                _write_command_log,
-                                payload=payload,
-                                sessionId=sessionId,
-                                reply_content=reply,
-                                cost_ms=cost_ms,
-                                status="success",
-                                error_msg=None,
-                                car_no=car_no,
-                                service=service,
-                                sid=sid,
-                            )
-
-                            return YunzhijiaResponseData(
-                                type=25,
-                                content="无牌车通行证发送成功",
-                                forwardControl="1",
-                                param=CardParam(
-                                    baseInfo=CardBaseInfo(
-                                        templateId=settings.mys4s_card_template_id,
-                                        dataContent=data_content,
-                                    )
-                                ),
-                            )
-                        except Exception as e:
-                            log.warning("生成二维码/卡片失败: %s", e)
-                else:
-                    msg = result.get("msg") or result.get("message") or str(result)
-                    reply = f"发送失败：{msg}"
             status = "success"
             error_msg = None
-        except Exception as e:
-            cost_ms = int((time.monotonic() - start) * 1000)
-            reply = f"调用道闸接口失败：{e}"
+
+            # 检查是否为无牌车（有 qr_url），返回卡片消息
+            if result.get("qr_url"):
+                try:
+                    company_name = await _get_company_name(robot_code)
+                    data_content = build_pass_card_data(
+                        pass_data=result.get("pass_data", {}),
+                        company_name=company_name,
+                        car_no=car_no,
+                        service=service,
+                        qr_image_url=result["qr_url"],
+                    )
+
+                    # 无牌车提前写 command_log 再返回卡片
+                    bg.add_task(
+                        _write_command_log,
+                        payload=payload,
+                        sessionId=sessionId,
+                        reply_content=reply,
+                        cost_ms=cost_ms,
+                        status="success",
+                        error_msg=None,
+                        car_no=car_no,
+                        service=service,
+                        sid=sid,
+                    )
+
+                    return YunzhijiaResponseData(
+                        type=25,
+                        content="无牌车通行证发送成功",
+                        forwardControl="1",
+                        param=CardParam(
+                            baseInfo=CardBaseInfo(
+                                templateId=settings.mys4s_card_template_id,
+                                dataContent=data_content,
+                            )
+                        ),
+                    )
+                except Exception as e:
+                    log.warning("生成二维码/卡片失败: %s", e)
+        else:
+            reply = f"调用道闸接口失败：{result.get('error', '未知错误')}"
             status = "failed"
-            error_msg = str(e)
-            log.warning("mys4s_handler failed: %s", e)
+            error_msg = result.get("error")
+            log.warning("mys4s_handler failed: %s", error_msg)
 
         # 4. 后台写 command_log
         bg.add_task(
@@ -191,50 +174,6 @@ async def _get_company_name(robot_code: str) -> str:
     if doc and doc.get("company_name"):
         return str(doc["company_name"])
     return ""
-
-
-def _generate_sign(params: dict) -> str:
-    """HMAC-SHA1 签名，参数按 key 排序后 URL-encode 拼接。"""
-    sorted_params = sorted(params.items())
-    sign_str = "&".join(
-        f"{k}={urllib.parse.quote(str(v), safe='')}" for k, v in sorted_params
-    )
-    digest = hmac.new(
-        settings.mys4s_secret_key.encode(),
-        sign_str.encode(),
-        hashlib.sha1,
-    ).digest()
-    return base64.b64encode(digest).decode()
-
-
-async def _call_mys4s_api(
-    car_no: str,
-    service: str,
-    user_tel: str,
-    sid: str,
-    desc: str,
-) -> dict:
-    """调用金斗云通行证 API。"""
-    params = {
-        "car_no": car_no,
-        "service": service,
-        "user_tel": user_tel,
-        "sid": sid,
-        "desc": desc,
-    }
-    sign = _generate_sign(params)
-    params["sign"] = sign
-
-    url = f"{settings.mys4s_base_url}/vehicle/passcard/send"
-    headers = {
-        "Content-Type": "application/json",
-        "Api-Key": settings.mys4s_api_key,
-    }
-
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.post(url, json=params, headers=headers)
-        resp.raise_for_status()
-        return resp.json()
 
 
 async def _write_command_log(

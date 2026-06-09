@@ -1,0 +1,36 @@
+<!-- 登录页 -->
+<div class="login-page">
+  <img class="login-logo" src="logo.png" alt="Logo" onerror="this.style.background='var(--primary)';this.style.display='flex'">
+  <h1 class="login-title">宝德通行证系统</h1>
+  <div class="login-form">
+    <div class="form-group">
+      <input id="tokenInput" class="form-input" type="password" placeholder="请输入 API Token" autocomplete="off">
+    </div>
+    <button id="loginBtn" class="btn btn-primary" onclick="handleLogin()">登 录</button>
+  </div>
+</div>
+
+<script>
+function initLoginPage() {
+  var input = document.getElementById('tokenInput');
+  if (input) {
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+    input.focus();
+  }
+}
+
+function handleLogin() {
+  var token = document.getElementById('tokenInput').value.trim();
+  if (!token) {
+    showToast('请输入 Token');
+    return;
+  }
+  localStorage.setItem('token', token);
+  showToast('登录成功');
+  setTimeout(function () {
+    navigateTo('/home');
+  }, 500);
+}
+</script>

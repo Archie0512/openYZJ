@@ -55,5 +55,9 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     # ── robots ───────────────────────────────────
     await _safe_create_index(db.robots, "robot_code", unique=True)
     await _safe_create_index(db.robots, "robotId", unique=True, sparse=True)
-    
+
+    # ── api_clients ──────────────────────────────────
+    await _safe_create_index(db.api_clients, "api_key", unique=True)
+    await _safe_create_index(db.api_clients, "client_id", unique=True)
+
     log.info("索引初始化完成")

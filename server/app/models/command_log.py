@@ -32,6 +32,7 @@ class CommandLogDoc(BaseModel):
     command: str  # 路由命中的命令名（task #5 填充，task #4 默认 'echo'）
     handler: str  # 命中的 handler 名
     status: str  # success / failed / pending
+    source: str = "yunzhijia"  # yunzhijia | open_api
     request_content: str
     response_content: Optional[str] = None
     external_api_calls: List[ApiCallLog] = Field(default_factory=list)

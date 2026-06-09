@@ -7,6 +7,9 @@
 # Obsidian 本地工作区
 .obsidian/
 
+# docs 开发相关文档
+docs/
+
 # Python
 __pycache__/
 *.pyc
