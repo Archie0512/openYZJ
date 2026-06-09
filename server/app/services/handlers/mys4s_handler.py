@@ -116,7 +116,7 @@ class MYS4SHandler(BaseHandler):
 
                             return YunzhijiaResponseData(
                                 type=25,
-                                content="",
+                                content="无牌车通行证发送成功",
                                 forwardControl="1",
                                 param=CardParam(
                                     baseInfo=CardBaseInfo(
