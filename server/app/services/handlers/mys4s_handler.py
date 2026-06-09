@@ -116,7 +116,6 @@ class MYS4SHandler(BaseHandler):
 
                             return YunzhijiaResponseData(
                                 type=25,
-                                content="",
                                 forwardControl="1",
                                 param=CardParam(
                                     baseInfo=CardBaseInfo(

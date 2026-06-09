@@ -37,7 +37,7 @@ class YunzhijiaResponseData(BaseModel):
     model_config = ConfigDict(exclude_none=True)
 
     type: int = Field(2, description="消息类型，文本=2，卡片=25")
-    content: str = Field(..., description="返回的消息内容")
+    content: Optional[str] = Field(None, description="返回的消息内容，type=25时可不传")
     forwardControl: Optional[str] = None  # "0"允许转发/"2"禁止
     param: Optional[CardParam] = None     # type=25 时必填
 
