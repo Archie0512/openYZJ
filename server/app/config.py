@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     passes_dir: str = "static/passes"
 
     # 卡片消息模板 ID（云之家平台注册的模板）
-    mys4s_card_template_id: str = "6a1ff701e4b0bd1d0dce47b9"
+    mys4s_card_template_id: str = "6a278658e4b0432247a2fa40"
 
     @property
     def mongo_uri(self) -> str:

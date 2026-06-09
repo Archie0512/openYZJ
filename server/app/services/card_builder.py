@@ -10,7 +10,7 @@ def build_pass_card_data(
 ) -> str:
     """构建道闸通行证卡片的 dataContent JSON 字符串。
 
-    变量与云之家卡片模板 (templateId: 6a1ff701e4b0bd1d0dce47b9) 对应：
+    变量与云之家卡片模板 (templateId: 6a278658e4b0432247a2fa40) 对应：
     - title: 卡片顶部标题
     - company_name: 门店名称
     - car_no: 车牌号码
@@ -23,6 +23,7 @@ def build_pass_card_data(
     - static_text: 底部静态提示文本
     """
     data = {
+        "appIcon": "https://www.yunzhijia.com/docrest/file/downloadfile/629f313edfef0100017dfb82",
         "title": f"出门单 #{pass_data.get('No', '')}",
         "textLiPrefix4": "门店：",
         "company_name": company_name,
@@ -37,6 +38,6 @@ def build_pass_card_data(
         "qr_image_url": qr_image_url,
         "textLiPrefix6": "备注：",
         "desc": pass_data.get("Desc", "") or "请在有效期内使用",
-        "static_text": "该出门单有效期为1小时",
+        "static_text": "宝德企业集团，欢迎再次光临！",
     }
     return json.dumps(data, ensure_ascii=False)
