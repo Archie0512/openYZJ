@@ -1,20 +1,11 @@
 <!-- 通行证申请页 -->
-<div class="navbar">
-  <span class="back-btn" onclick="navigateTo('/home')">‹</span>
-  <span>申请通行证</span>
-</div>
-
 <div class="page">
-  <!-- OCR 扫描区域 -->
+  <!-- OCR 拍照区域 -->
   <div class="card ocr-section">
     <div class="form-label">📷 拍照识别车牌</div>
-    <div class="ocr-video-wrapper" id="ocrVideoWrapper" style="display:none;">
-      <video id="ocrVideo" playsinline muted></video>
-      <div class="ocr-overlay"><div class="ocr-frame"></div></div>
-    </div>
-    <div style="display: flex; gap: 8px; margin-top: 8px;">
-      <button class="btn btn-outline btn-sm" id="cameraBtn" onclick="toggleCamera()">打开摄像头</button>
-      <button class="btn btn-primary btn-sm" id="captureBtn" onclick="handleCapture()" style="display:none;">拍照识别</button>
+    <div class="ocr-upload-area">
+      <input type="file" id="ocrFileInput" accept="image/*" capture="camera" style="display:none;" onchange="handleOCRFile(this)">
+      <button class="btn btn-outline btn-sm" id="ocrBtn" onclick="document.getElementById('ocrFileInput').click()">拍照识别</button>
     </div>
     <div class="ocr-result" id="ocrResult" style="display:none;"></div>
   </div>
@@ -39,22 +30,18 @@
     <div class="form-group">
       <label class="form-label">事由 *</label>
       <select class="form-select" id="serviceSelect" onchange="handleServiceChange()">
-        <option value="">请选择事由</option>
-        <option value="来访接待">来访接待</option>
-        <option value="施工">施工</option>
-        <option value="送货">送货</option>
-        <option value="其他">其他</option>
-        <option value="__custom">自定义输入...</option>
+        <option value="">加载中...</option>
       </select>
       <input class="form-input" id="customService" type="text" placeholder="请输入自定义事由" style="display:none; margin-top:8px;">
     </div>
 
-    <!-- 门店 -->
+    <!-- 门店信息（只读） -->
     <div class="form-group">
-      <label class="form-label">门店 *</label>
-      <select class="form-select" id="robotSelect">
-        <option value="">加载中...</option>
-      </select>
+      <label class="form-label">门店</label>
+      <div class="store-info" id="storeInfo">
+        <span class="store-loading">自动获取中...</span>
+      </div>
+      <input type="hidden" id="storeSid" value="">
     </div>
 
     <!-- 备注 -->
@@ -69,11 +56,10 @@
 </div>
 
 <script>
-var _cameraActive = false;
-
 function initPasscardFormPage() {
   renderProvinceGrid();
-  loadRobots();
+  loadServiceReasons();
+  loadUserStore();
 }
 
 // ─── 省份选择 ───
@@ -92,6 +78,15 @@ function toggleProvinceGrid() {
 function selectProvince(p) {
   document.getElementById('provBtn').textContent = p;
   document.getElementById('provinceGrid').style.display = 'none';
+  // 选择"无"时允许输入7位
+  var plateInput = document.getElementById('plateInput');
+  if (p === '无') {
+    plateInput.setAttribute('maxlength', '7');
+    plateInput.setAttribute('placeholder', '0000000');
+  } else {
+    plateInput.setAttribute('maxlength', '7');
+    plateInput.setAttribute('placeholder', 'A12345');
+  }
 }
 
 // ─── 事由选择 ───
@@ -101,87 +96,93 @@ function handleServiceChange() {
   custom.style.display = sel.value === '__custom' ? 'block' : 'none';
 }
 
-// ─── 加载门店列表 ───
-function loadRobots() {
-  var sel = document.getElementById('robotSelect');
-  api.getRobots()
+// ─── 加载事由列表 ───
+var _defaultReasons = ['来访接待', '施工', '送货', '其他'];
+
+function loadServiceReasons() {
+  var sel = document.getElementById('serviceSelect');
+  api.getServiceReasons()
     .then(function (res) {
-      var robots = (res.data && res.data.robots) || [];
-      if (robots.length === 0) {
-        sel.innerHTML = '<option value="">暂无可用门店</option>';
-        return;
+      var reasons = (res.data && res.data.reasons) || [];
+      if (reasons.length === 0) {
+        reasons = _defaultReasons;
       }
-      sel.innerHTML = '<option value="">请选择门店</option>' +
-        robots.map(function (r) {
-          return '<option value="' + (r.sid || '') + '" data-name="' + (r.company_name || r.name) + '">'
-            + (r.company_name || r.name) + '</option>';
-        }).join('');
+      renderReasons(sel, reasons);
     })
     .catch(function () {
-      sel.innerHTML = '<option value="">加载失败，请重试</option>';
+      renderReasons(sel, _defaultReasons);
     });
 }
 
-// ─── 摄像头 ───
-function toggleCamera() {
-  var wrapper = document.getElementById('ocrVideoWrapper');
-  var btn = document.getElementById('cameraBtn');
-  var captureBtn = document.getElementById('captureBtn');
-  var video = document.getElementById('ocrVideo');
-
-  if (_cameraActive) {
-    stopCamera(_activeStream);
-    _activeStream = null;
-    _cameraActive = false;
-    wrapper.style.display = 'none';
-    captureBtn.style.display = 'none';
-    btn.textContent = '打开摄像头';
-  } else {
-    wrapper.style.display = 'block';
-    btn.textContent = '关闭摄像头';
-    startCamera(video)
-      .then(function (stream) {
-        _activeStream = stream;
-        _cameraActive = true;
-        captureBtn.style.display = 'inline-flex';
-      })
-      .catch(function () {
-        showToast('无法打开摄像头');
-        wrapper.style.display = 'none';
-        btn.textContent = '打开摄像头';
-      });
-  }
+function renderReasons(sel, reasons) {
+  sel.innerHTML = '<option value="">请选择事由</option>' +
+    reasons.map(function (r) {
+      return '<option value="' + r + '">' + r + '</option>';
+    }).join('') +
+    '<option value="__custom">自定义输入...</option>';
 }
 
-async function handleCapture() {
-  var video = document.getElementById('ocrVideo');
-  var resultEl = document.getElementById('ocrResult');
-  var captureBtn = document.getElementById('captureBtn');
+// ─── 加载门店信息（自动判定） ───
+var _userStore = null;
 
-  setBtnLoading(captureBtn, true, '识别中...');
+function loadUserStore() {
+  var storeInfo = document.getElementById('storeInfo');
+  var storeSid = document.getElementById('storeSid');
+  var user = getCurrentUser();
+
+  if (!user || !user.openid) {
+    storeInfo.innerHTML = '<span class="store-error">未获取用户信息</span>';
+    return;
+  }
+
+  api.getUserStore(user.openid)
+    .then(function (res) {
+      if (res.data) {
+        _userStore = res.data;
+        storeSid.value = res.data.sid || '';
+        storeInfo.innerHTML = '<span class="store-name">' + (res.data.company_name || '-') + '</span>';
+      } else {
+        storeInfo.innerHTML = '<span class="store-error">未分配门店</span>';
+      }
+    })
+    .catch(function () {
+      storeInfo.innerHTML = '<span class="store-error">获取失败，请重试</span>';
+    });
+}
+
+// ─── OCR 拍照上传 ───
+function handleOCRFile(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+
+  var resultEl = document.getElementById('ocrResult');
+  var ocrBtn = document.getElementById('ocrBtn');
   resultEl.style.display = 'block';
   resultEl.className = 'ocr-result';
   resultEl.textContent = '正在识别，请稍候...';
+  setBtnLoading(ocrBtn, true, '识别中...');
 
-  var canvas = captureFrame(video);
-  var plate = await recognizePlate(canvas);
+  uploadForOCR(file).then(function (plate) {
+    setBtnLoading(ocrBtn, false);
+    ocrBtn.textContent = '拍照识别';
 
-  setBtnLoading(captureBtn, false);
-  captureBtn.textContent = '拍照识别';
-
-  if (plate) {
-    resultEl.className = 'ocr-result success';
-    resultEl.textContent = '识别成功: ' + plate;
-    // 自动填入
-    var prov = plate.charAt(0);
-    var rest = plate.slice(1);
-    if (PROVINCES.indexOf(prov) > -1) {
-      document.getElementById('provBtn').textContent = prov;
+    if (plate) {
+      resultEl.className = 'ocr-result success';
+      resultEl.textContent = '识别成功: ' + plate;
+      // 自动填入
+      var prov = plate.charAt(0);
+      var rest = plate.slice(1);
+      if (PROVINCES.indexOf(prov) > -1) {
+        document.getElementById('provBtn').textContent = prov;
+      }
+      document.getElementById('plateInput').value = rest;
+    } else {
+      resultEl.textContent = '未识别到车牌，请手动输入';
     }
-    document.getElementById('plateInput').value = rest;
-  } else {
-    resultEl.textContent = '未识别到车牌，请调整角度重试';
-  }
+
+    // 清空 input 以便再次选择同一文件
+    input.value = '';
+  });
 }
 
 // ─── 提交 ───
@@ -190,10 +191,10 @@ async function handleSubmit() {
   var plateRest = document.getElementById('plateInput').value.trim();
   var serviceEl = document.getElementById('serviceSelect');
   var service = serviceEl.value;
-  var robotEl = document.getElementById('robotSelect');
-  var sid = robotEl.value;
+  var sid = document.getElementById('storeSid').value;
   var remark = document.getElementById('remarkInput').value.trim();
   var submitBtn = document.getElementById('submitBtn');
+  var user = getCurrentUser();
 
   // 自定义事由
   if (service === '__custom') {
@@ -205,7 +206,7 @@ async function handleSubmit() {
   if (!plateRest) { showToast('请输入车牌号'); return; }
   if (!isValidPlate(carNo)) { showToast('车牌号格式不正确'); return; }
   if (!service) { showToast('请选择或输入事由'); return; }
-  if (!sid) { showToast('请选择门店'); return; }
+  if (!sid) { showToast('门店信息未加载，请稍后重试'); return; }
 
   setBtnLoading(submitBtn, true, '提交中...');
 
@@ -214,7 +215,7 @@ async function handleSubmit() {
       car_no: carNo,
       service: service,
       sid: sid,
-      operator_name: remark,
+      operator_name: (user && user.name) || remark || '',
     });
     showToast('提交成功');
     // 跳转详情页

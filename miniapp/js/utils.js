@@ -2,6 +2,42 @@
  * 通用工具函数 - utils.js
  */
 
+// ─── 云之家 JS-SDK 用户信息 ───
+var _currentUser = null;
+
+/**
+ * 获取云之家用户信息
+ * @param {function} callback 回调函数(user)
+ */
+function getYZJUser(callback) {
+  // 云之家环境
+  if (window.YZJ && window.YZJ.getUser) {
+    window.YZJ.getUser(function(result) {
+      if (result && result.openid) {
+        _currentUser = result;
+        callback(result);
+      }
+    });
+  } else {
+    // 本地开发 mock 模式
+    var mockUser = {
+      openid: 'dev_user_001',
+      name: '开发测试',
+      department: '技术部'
+    };
+    _currentUser = mockUser;
+    callback(mockUser);
+  }
+}
+
+/**
+ * 获取当前用户
+ * @returns {object|null}
+ */
+function getCurrentUser() {
+  return _currentUser;
+}
+
 /**
  * 显示 Toast 提示
  * @param {string} msg 提示文本
@@ -78,28 +114,4 @@ function setBtnLoading(btn, loading, text) {
     btn.textContent = btn._originalText || '提交';
     btn.classList.remove('btn-disabled');
   }
-}
-
-/**
- * 检查是否已登录
- * @returns {boolean}
- */
-function isLoggedIn() {
-  return !!localStorage.getItem('token');
-}
-
-/**
- * 获取 Token
- * @returns {string}
- */
-function getToken() {
-  return localStorage.getItem('token') || '';
-}
-
-/**
- * 登出清除 Token
- */
-function logout() {
-  localStorage.removeItem('token');
-  window.location.hash = '#/login';
 }

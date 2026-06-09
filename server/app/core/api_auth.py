@@ -1,4 +1,7 @@
-"""开放 API HMAC-SHA256 签名鉴权依赖。
+"""开放 API 鉴权依赖。
+
+1. require_api_auth: HMAC-SHA256 签名鉴权（第三方 ERP/道闸系统）
+2. require_bearer_auth: 简化 Bearer Token 鉴权（小程序前端）
 
 签名计算方式：HMAC-SHA256(secret, method + path + timestamp + body_md5)
 其中 body_md5 是请求体的 MD5 十六进制摘要。
@@ -12,6 +15,7 @@ import time
 
 from fastapi import HTTPException, Request
 
+from app.config import settings
 from app.core.crypto import decrypt_secret
 from app.db import mongodb
 
@@ -89,3 +93,36 @@ async def require_api_auth(request: Request) -> str:
         raise HTTPException(status_code=401, detail="签名验证失败")
 
     return str(client_doc["client_id"])
+
+
+async def require_bearer_auth(request: Request) -> str:
+    """简化 Bearer Token 鉴权（小程序场景）。
+
+    检查 Authorization header 中的 Bearer token 是否：
+      - 与 admin_token 匹配，或
+      - 存在于 api_clients 集合中某个 active 客户端的 api_key
+
+    返回标识字符串（admin 或 client_id）。
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="缺少 Authorization: Bearer <token>",
+        )
+
+    token = auth_header[7:]  # strip "Bearer "
+    if not token:
+        raise HTTPException(status_code=401, detail="Token 不能为空")
+
+    # 检查是否匹配 admin_token
+    if hmac.compare_digest(token, settings.admin_token):
+        return "admin"
+
+    # 检查是否存在于 api_clients 中
+    db = mongodb.get_db()
+    client_doc = await db.api_clients.find_one({"api_key": token})
+    if client_doc and client_doc.get("status") == "active":
+        return str(client_doc["client_id"])
+
+    raise HTTPException(status_code=401, detail="无效的 Bearer Token")

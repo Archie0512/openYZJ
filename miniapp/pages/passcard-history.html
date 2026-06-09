@@ -1,9 +1,4 @@
 <!-- 申请记录页 -->
-<div class="navbar">
-  <span class="back-btn" onclick="navigateTo('/home')">‹</span>
-  <span>申请记录</span>
-</div>
-
 <div class="page">
   <div id="historyList">
     <div class="loading">加载中...</div>
@@ -29,12 +24,14 @@ function initPasscardHistoryPage() {
 function fetchHistory() {
   var listEl = document.getElementById('historyList');
   var loadMoreWrap = document.getElementById('loadMoreWrap');
+  var user = getCurrentUser();
+  var openid = (user && user.openid) || '';
 
   if (_historyPage === 1) {
     showLoading(listEl);
   }
 
-  api.getHistory(_historyPage, _historySize)
+  api.getHistory(_historyPage, _historySize, openid)
     .then(function (res) {
       var items = (res.data && res.data.items) || (res.data && res.data.records) || [];
 
@@ -61,7 +58,7 @@ function fetchHistory() {
     })
     .catch(function (err) {
       if (_historyPage === 1) {
-        listEl.innerHTML = '<div class="empty"><div class="icon">😵</div><p>加载失败: ' + (err.message || '') + '</p></div>';
+        listEl.innerHTML = '<div class="empty"><div class="icon">📭</div><p>暂无申请记录</p></div>';
       } else {
         showToast('加载失败');
       }
@@ -72,8 +69,11 @@ function loadMoreHistory() {
   if (_historyEnd) return;
   _historyPage++;
   var btn = document.getElementById('loadMoreBtn');
+  var user = getCurrentUser();
+  var openid = (user && user.openid) || '';
   setBtnLoading(btn, true, '加载中...');
-  api.getHistory(_historyPage, _historySize)
+
+  api.getHistory(_historyPage, _historySize, openid)
     .then(function (res) {
       var items = (res.data && res.data.items) || (res.data && res.data.records) || [];
       var listEl = document.getElementById('historyList');

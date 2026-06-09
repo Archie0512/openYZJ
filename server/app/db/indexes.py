@@ -60,4 +60,29 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     await _safe_create_index(db.api_clients, "api_key", unique=True)
     await _safe_create_index(db.api_clients, "client_id", unique=True)
 
+    # ── service_reasons ─────────────────────────────
+    await _safe_create_index(db.service_reasons, "sort")
+
+    # ── user_stores ─────────────────────────────────
+    await _safe_create_index(db.user_stores, "openid", unique=True)
+
     log.info("索引初始化完成")
+
+    # ── 预置数据：service_reasons ───────────────────
+    await _seed_service_reasons(db)
+
+
+async def _seed_service_reasons(db) -> None:
+    """如果 service_reasons 集合为空，插入预置事由数据。"""
+    count = await db.service_reasons.count_documents({})
+    if count > 0:
+        return
+
+    preset = [
+        {"name": "来访接待", "sort": 1, "status": "active"},
+        {"name": "施工", "sort": 2, "status": "active"},
+        {"name": "送货", "sort": 3, "status": "active"},
+        {"name": "其他", "sort": 99, "status": "active"},
+    ]
+    await db.service_reasons.insert_many(preset)
+    log.info("预置事由数据已插入（%d 条）", len(preset))

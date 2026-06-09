@@ -9,14 +9,18 @@
   <!-- 全局样式 -->
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/style.css">
-
-  <!-- Tesseract.js OCR 引擎 (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <!-- SPA 页面容器 -->
-  <div id="app">
-    <div class="loading">加载中...</div>
+  <div id="app-container">
+    <!-- 顶部 Tab 栏 -->
+    <div class="tab-bar" id="tabBar">
+      <div class="tab-item active" data-route="/passcard">申请通行证</div>
+      <div class="tab-item" data-route="/history">申请记录</div>
+    </div>
+    <!-- 页面内容区 -->
+    <div id="app">
+      <div class="loading">加载中...</div>
+    </div>
   </div>
 
   <!-- JS 加载顺序：工具 → API → OCR → 路由（依赖顺序） -->
