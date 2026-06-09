@@ -4,6 +4,9 @@
 # Qoder IDE 工作区文件（本地 AI 记忆/wiki，不属于项目代码）
 .qoder/
 
+# Obsidian 本地工作区
+.obsidian/
+
 # Python
 __pycache__/
 *.pyc
