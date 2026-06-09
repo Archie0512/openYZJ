@@ -19,6 +19,9 @@ build/
 .idea/
 .vscode/settings.json
 
+# 示例/模板文件（从外部工具导出，仅供本地参考）
+docs/template.json
+
 # 日志
 *.log
 

@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# 安装 curl，用于 healthcheck
+# 安装 curl（healthcheck）
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
     && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
     && apt-get update && apt-get install -y --no-install-recommends curl \
@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 再复制应用代码
 COPY app/ ./app/
+
+# 创建静态文件目录
+RUN mkdir -p /app/static/passes
 
 EXPOSE 8000
 
