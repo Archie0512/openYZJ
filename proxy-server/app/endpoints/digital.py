@@ -2,8 +2,6 @@
 
 - 4.1.03 数电票发票批量查询
 - 4.1.04 数电票发票单张查询
-
-查询数据通常与 1.1.02/1.1.03 的返回响应存在关系。
 """
 from __future__ import annotations
 
@@ -11,14 +9,14 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 
-from app.proxy.auth import require_proxy_auth
-from app.proxy.kdcloud import client as kdcloud
-from app.proxy.models import (
+from app.auth import require_proxy_auth
+from app import kdcloud_client as kdcloud
+from app.models import (
     DigitalBatchQueryRequest,
     DigitalSingleQueryRequest,
     ProxyResponse,
 )
-from app.proxy.token_manager import get_token_manager
+from app.token_manager import get_token_manager
 
 log = logging.getLogger(__name__)
 

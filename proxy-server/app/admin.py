@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.admin_auth import require_admin
-from app.core.crypto import encrypt_secret
-from app.db import mongodb
-from app.proxy.models import (
+from app.admin_auth import require_admin
+from app.crypto import encrypt_secret
+from app import mongodb
+from app.models import (
     ProxyClientCreateReq,
     ProxyClientPublic,
     ProxyClientUpdateReq,

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.proxy.kdcloud.endpoints import (
+from app.endpoints import (
     callbacks,
     digital,
     invoicing,

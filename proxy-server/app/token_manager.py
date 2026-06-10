@@ -16,8 +16,8 @@ from datetime import datetime, timezone
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.config import settings
-from app.db import mongodb
-from app.proxy.kdcloud import client as kdcloud
+from app import mongodb
+from app import kdcloud_client as kdcloud
 
 log = logging.getLogger(__name__)
 

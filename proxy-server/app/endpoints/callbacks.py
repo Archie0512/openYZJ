@@ -13,8 +13,8 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 
-from app.proxy.auth import require_proxy_auth
-from app.proxy.models import CallbackRequest, ProxyResponse
+from app.auth import require_proxy_auth
+from app.models import CallbackRequest, ProxyResponse
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,6 @@ async def callback_apply_return(
     """
     request.state.caller_id = client_id
     log.info("[proxy] callback/apply-return 收到回调 caller=%s body=%s", client_id, req.model_dump())
-    # TODO: 转发到 System A 配置的回调地址
     return ProxyResponse(message="received")
 
 
@@ -50,7 +49,6 @@ async def callback_by_invoice(
     """
     request.state.caller_id = client_id
     log.info("[proxy] callback/by-invoice 收到回调 caller=%s body=%s", client_id, req.model_dump())
-    # TODO: 转发到 System A 配置的回调地址
     return ProxyResponse(message="received")
 
 
@@ -66,5 +64,4 @@ async def callback_by_apply(
     """
     request.state.caller_id = client_id
     log.info("[proxy] callback/by-apply 收到回调 caller=%s body=%s", client_id, req.model_dump())
-    # TODO: 转发到 System A 配置的回调地址
     return ProxyResponse(message="received")

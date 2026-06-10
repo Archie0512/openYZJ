@@ -1,8 +1,7 @@
 """金蝶发票云 HTTP 客户端。
 
 使用全局单例 httpx.AsyncClient（连接池复用），封装所有金蝶发票云 API 调用。
-每个方法接收 access_token 参数，设置 access_token header；
-收到 401 时自动触发 token_manager.refresh() 然后重试一次。
+每个方法接收 access_token 参数，设置 access_token header。
 """
 from __future__ import annotations
 
@@ -71,7 +70,6 @@ async def get_app_token() -> dict:
         "appId": settings.kdcloud_app_id,
         "appSecret": settings.kdcloud_app_secret,
         "accountId": settings.kdcloud_account_id,
-        "tenantid": settings.kdcloud_tenant_id if hasattr(settings, "kdcloud_tenant_id") else "",
         "language": settings.kdcloud_language,
     }
     log.info("[kdcloud] 获取 app_token")
@@ -90,7 +88,6 @@ async def login(app_token: str) -> dict:
         "user": settings.kdcloud_user,
         "apptoken": app_token,
         "accountId": settings.kdcloud_account_id,
-        "tenantid": settings.kdcloud_tenant_id if hasattr(settings, "kdcloud_tenant_id") else "",
         "usertype": settings.kdcloud_usertype,
     }
     log.info("[kdcloud] 获取 access_token")

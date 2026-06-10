@@ -15,7 +15,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.config import settings
-from app.db import mongodb
+from app import mongodb
 
 log = logging.getLogger(__name__)
 

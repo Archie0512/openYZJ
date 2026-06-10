@@ -10,15 +10,15 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 
-from app.proxy.auth import require_proxy_auth
-from app.proxy.kdcloud import client as kdcloud
-from app.proxy.models import (
+from app.auth import require_proxy_auth
+from app import kdcloud_client as kdcloud
+from app.models import (
     ProxyResponse,
     VehicleInfoQueryRequest,
     VehicleInvoiceRequest,
     VehicleRedFlushRequest,
 )
-from app.proxy.token_manager import get_token_manager
+from app.token_manager import get_token_manager
 
 log = logging.getLogger(__name__)
 

@@ -78,15 +78,10 @@ class ProxyResponse(BaseModel):
 
 
 # ── 业务请求模型 ──────────────────────────────────────
-# 注：字段按金蝶发票云 OpenAPI 文档定义，此处提供核心必填字段；
-# 完整字段由调用方 System A 按需传入，代理层做透传。
 
 
 class InvoiceCreateRequest(BaseModel):
-    """1.1.01 开票申请单生成及开票。
-
-    核心字段：bills（单据列表）、autoInvoice（自动开票）、autoMerge（自动合并）。
-    """
+    """1.1.01 开票申请单生成及开票。"""
 
     model_config = ConfigDict(extra="allow")
 

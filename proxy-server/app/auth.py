@@ -14,8 +14,8 @@ import time
 
 from fastapi import HTTPException, Request
 
-from app.core.crypto import decrypt_secret
-from app.db import mongodb
+from app.crypto import decrypt_secret
+from app import mongodb
 
 log = logging.getLogger(__name__)
 
