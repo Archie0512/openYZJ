@@ -25,9 +25,6 @@ body {
   max-width: 750px;
   margin: 0 auto;
   min-height: 100vh;
-}
-
-#app {
   padding-bottom: 20px;
 }
 
@@ -104,7 +101,12 @@ body {
 
 /* ===== 页面容器 ===== */
 .page {
+  display: none;
   padding: 16px;
+}
+
+.page.active {
+  display: block;
 }
 
 /* ===== 卡片 ===== */
