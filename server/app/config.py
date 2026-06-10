@@ -40,6 +40,22 @@ class Settings(BaseSettings):
     # 卡片消息模板 ID（云之家平台注册的模板）
     mys4s_card_template_id: str = "6a278658e4b0432247a2fa40"
 
+    # 金蝶发票云代理配置
+    kdcloud_test_base_url: str = "https://baode.test.kdcloud.com"
+    kdcloud_prod_base_url: str = "https://baode.kdcloud.com"
+    kdcloud_app_id: str = ""
+    kdcloud_app_secret: str = ""
+    kdcloud_user: str = ""
+    kdcloud_account_id: str = ""
+    kdcloud_language: str = "en"
+    kdcloud_usertype: str = "UserName"
+
+    # 代理网关开关与限额
+    proxy_api_enabled: bool = False
+    proxy_rate_limit_default: int = 60
+    proxy_token_refresh_margin: int = 600
+    proxy_max_body_size_mb: int = 10
+
     @property
     def mongo_uri(self) -> str:
         """构造 MongoDB 连接 URI（使用 admin 库进行身份验证）。"""

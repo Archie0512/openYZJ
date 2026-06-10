@@ -55,5 +55,31 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     # ── robots ───────────────────────────────────
     await _safe_create_index(db.robots, "robot_code", unique=True)
     await _safe_create_index(db.robots, "robotId", unique=True, sparse=True)
-    
+
+    # ── proxy_clients ─────────────────────────────
+    await _safe_create_index(db.proxy_clients, "api_key", unique=True)
+    await _safe_create_index(db.proxy_clients, "client_id", unique=True)
+
+    # ── kdcloud_tokens ────────────────────────────
+    await _safe_create_index(db.kdcloud_tokens, "account_id", unique=True)
+    await _safe_create_index(
+        db.kdcloud_tokens,
+        [("account_id", 1), ("env", 1)],
+        unique=True,
+    )
+
+    # ── proxy_rate_counters ───────────────────────
+    await _safe_create_index(
+        db.proxy_rate_counters,
+        "created_at",
+        expireAfterSeconds=120,
+    )
+
+    # ── proxy_metrics ─────────────────────────────
+    await _safe_create_index(
+        db.proxy_metrics,
+        [("timestamp", -1)],
+        expireAfterSeconds=2592000,
+    )
+
     log.info("索引初始化完成")
