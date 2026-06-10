@@ -1,5 +1,6 @@
 {
   "logo": "logo.png",
+  "appName" : "宝德通行证",
   "window": {
     "navigationBarBackgroundColor": "#1989fa",
     "navigationBarTextStyle": "white",

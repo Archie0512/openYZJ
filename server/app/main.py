@@ -63,3 +63,6 @@ if settings.open_api_enabled:
 # 挂载静态文件目录（放在路由注册之后，避免前缀匹配拦截其他路由）
 os.makedirs(settings.passes_dir, exist_ok=True)
 app.mount("/static/passes", StaticFiles(directory=settings.passes_dir), name="passes")
+
+# 挂载 miniapp 轻应用静态文件
+app.mount("/miniapp", StaticFiles(directory="../miniapp", html=True), name="miniapp")

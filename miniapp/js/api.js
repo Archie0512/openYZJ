@@ -3,7 +3,11 @@
  * 统一 Bearer Token 鉴权
  */
 
-var API_BASE = '/api/v1';
+// 轻应用模式：同域相对路径
+// 本地开发：需要指定完整 URL
+var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000/api/v1'
+  : '/api/v1';
 
 // 本地开发 token（生产环境由后端分配）
 var API_TOKEN = 'dev_token_placeholder';

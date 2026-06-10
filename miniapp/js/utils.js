@@ -10,24 +10,42 @@ var _currentUser = null;
  * @param {function} callback 回调函数(user)
  */
 function getYZJUser(callback) {
-  // 云之家环境
-  if (window.YZJ && window.YZJ.getUser) {
-    window.YZJ.getUser(function(result) {
-      if (result && result.openid) {
-        _currentUser = result;
-        callback(result);
+  // 检测云之家环境（移动端/桌面端）
+  var isYzjApp = navigator.userAgent.match(/Qing\/.*;(iPhone|Android).*/);
+  var isCloudHub = /cloudhub 10204/.test(navigator.userAgent);
+
+  if (isYzjApp || isCloudHub) {
+    // 云之家环境：调用 XuntongJSBridge 获取用户信息
+    XuntongJSBridge.call('getPersonInfo', {}, function(result) {
+      if (typeof result === 'string') result = JSON.parse(result); // 桌面端返回 string
+      if (String(result.success) === 'true' && result.data) {
+        _currentUser = {
+          openid: result.data.openId,
+          name: result.data.name,
+          eid: result.data.eid,
+          photoUrl: result.data.photoUrl
+        };
+        callback(_currentUser);
+      } else {
+        // 获取失败，使用空用户
+        console.warn('[YZJ] getPersonInfo 失败:', result.error);
+        _currentUser = { openid: '', name: '未知用户' };
+        callback(_currentUser);
       }
     });
   } else {
-    // 本地开发 mock 模式
-    var mockUser = {
-      openid: 'dev_user_001',
-      name: '开发测试',
-      department: '技术部'
-    };
-    _currentUser = mockUser;
-    callback(mockUser);
+    // 非云之家环境（本地开发/外部浏览器）
+    _currentUser = { openid: 'dev_user_001', name: '开发测试', department: '技术部' };
+    callback(_currentUser);
   }
+}
+
+/**
+ * 判断是否为云之家桌面端
+ * @returns {boolean}
+ */
+function isDesktop() {
+  return /cloudhub 10204/.test(navigator.userAgent);
 }
 
 /**
