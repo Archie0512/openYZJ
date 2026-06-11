@@ -57,4 +57,7 @@ docker compose -f "$COMPOSE_FILE" ps
 echo "==> 自检 health 接口"
 curl -fsS http://127.0.0.1:8000/health && echo
 
+echo "==> 自检 proxy health 接口"
+curl -fsS http://127.0.0.1:8001/health && echo
+
 echo "==> 部署完成。如需通过域名验证：curl -fsS https://kimpi.cn/health"
