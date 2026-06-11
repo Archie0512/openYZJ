@@ -9,8 +9,8 @@ var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.
   ? 'http://localhost:8000/api/v1'
   : '/api/v1';
 
-// 本地开发 token（生产环境由后端分配）
-var API_TOKEN = 'dev_token_placeholder';
+// 轻应用专用 Bearer Token（对应 api_clients 集合中的 miniapp_h5 客户端）
+var API_TOKEN = 'miniapp_client_2024';
 
 /**
  * 获取鉴权 token
