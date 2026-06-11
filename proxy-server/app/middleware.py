@@ -34,21 +34,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not path.startswith("/api/proxy/v1/"):
             return await call_next(request)
 
-        # 尝试获取 client_id（从已认证的请求中）
-        caller_id = getattr(request.state, "caller_id", None)
-        if caller_id is None:
-            # 尚未鉴权，放行让 auth 处理
+        # 直接从 header 提取 API Key，查询 client_id 和 rate_limit
+        # （中间件在端点处理器之前执行，无法依赖端点设置的 caller_id）
+        api_key = request.headers.get("X-Proxy-Api-Key")
+        if not api_key:
             return await call_next(request)
 
         db = mongodb.get_db()
+        client_doc = await db.proxy_clients.find_one(
+            {"api_key": api_key}, {"client_id": 1, "rate_limit": 1}
+        )
+        if not client_doc:
+            return await call_next(request)
+
+        caller_id = client_doc["client_id"]
+        rate_limit = client_doc.get("rate_limit") or settings.proxy_rate_limit_default
+
+        # 设置 caller_id 供后续中间件（RequestLoggingMiddleware）和端点处理器使用
+        request.state.caller_id = caller_id
+
         window_start = int(time.time() / 60) * 60  # 分钟级窗口
         counter_id = f"{caller_id}:{window_start}"
-
-        # 查询或获取 client 的 rate_limit 配置
-        client_doc = await db.proxy_clients.find_one(
-            {"client_id": caller_id}, {"rate_limit": 1}
-        )
-        rate_limit = (client_doc.get("rate_limit") if client_doc else None) or settings.proxy_rate_limit_default
 
         # 原子增加计数
         result = await db.proxy_rate_counters.find_one_and_update(

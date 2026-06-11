@@ -92,17 +92,38 @@ class TokenManager:
             log.exception("[token_mgr] 后台刷新失败")
 
     async def _do_full_refresh(self, env: str) -> dict:
-        """执行完整 token 刷新链路：app_token → access_token → 持久化。"""
-        # 获取 app_token
-        app_resp = await kdcloud.get_app_token()
-        app_data = app_resp.get("data", {})
-        if not app_data.get("success"):
-            raise RuntimeError(f"获取 app_token 失败: {app_data.get('error_desc', app_resp)}")
-        app_token = app_data["app_token"]
-        app_expire_time = app_data.get("expire_time", 0)
-        app_expires_at = datetime.fromtimestamp(app_expire_time / 1000, tz=timezone.utc)
+        """执行 token 刷新：复用有效 app_token，仅刷新 access_token。
 
-        # 获取 access_token
+        如果 MongoDB 中缓存的 app_token 仍在有效期内（剩余 > 5 分钟），
+        复用它跳过 get_app_token 调用，直接获取新 access_token。
+        """
+        # 先尝试复用缓存的 app_token
+        doc = await self._db.kdcloud_tokens.find_one(
+            {"account_id": settings.kdcloud_account_id, "env": env}
+        )
+
+        app_token = None
+        app_expires_at = None
+        if doc and doc.get("app_token"):
+            app_expires = doc.get("app_token_expires_at")
+            if app_expires:
+                expire_ts = app_expires.timestamp() if isinstance(app_expires, datetime) else float(app_expires)
+                if time.time() + 300 < expire_ts:  # app_token 还有 5 分钟以上
+                    app_token = doc["app_token"]
+                    app_expires_at = app_expires if isinstance(app_expires, datetime) else datetime.fromtimestamp(expire_ts, tz=timezone.utc)
+                    log.debug("[token_mgr] 复用缓存 app_token")
+
+        # 如果 app_token 过期，获取新的
+        if not app_token:
+            app_resp = await kdcloud.get_app_token()
+            app_data = app_resp.get("data", {})
+            if not app_data.get("success"):
+                raise RuntimeError(f"获取 app_token 失败: {app_data.get('error_desc', app_resp)}")
+            app_token = app_data["app_token"]
+            app_expire_time = app_data.get("expire_time", 0)
+            app_expires_at = datetime.fromtimestamp(app_expire_time / 1000, tz=timezone.utc)
+
+        # 获取 access_token（始终刷新）
         login_resp = await kdcloud.login(app_token)
         login_data = login_resp.get("data", {})
         if not login_data.get("success"):

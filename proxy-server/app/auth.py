@@ -89,4 +89,6 @@ async def require_proxy_auth(request: Request) -> str:
     if not hmac.compare_digest(expected, signature):
         raise HTTPException(status_code=401, detail="签名验证失败")
 
+    # 设置 caller_id 到 request.state，供中间件和端点处理器使用
+    request.state.caller_id = str(client_doc["client_id"])
     return str(client_doc["client_id"])
