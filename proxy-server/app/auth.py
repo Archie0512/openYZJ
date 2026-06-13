@@ -3,7 +3,8 @@
 使用独立的 header 命名空间（X-Proxy-*）和独立的 MongoDB 集合（proxy_clients），
 与开放 API 的 api_auth.py 完全隔离。
 
-签名算法：HMAC-SHA256(api_secret, method + path + timestamp + body_md5)
+签名算法：HMAC-SHA256(api_secret, method + path + timestamp + body)  
+其中 body 使用原始 HTTP 请求体字节，无需 MD5 摘要。
 """
 from __future__ import annotations
 
@@ -73,16 +74,20 @@ async def require_proxy_auth(request: Request) -> str:
         log.error("解密 proxy api_secret 失败 client_id=%s", client_doc.get("client_id"))
         raise HTTPException(status_code=500, detail="服务端鉴权配置异常")
 
-    # 计算预期签名
+    # 计算预期签名（method + path + timestamp 按 UTF-8 编码，body 使用原始字节）
     body = await request.body()
-    body_md5 = hashlib.md5(body).hexdigest() if body else hashlib.md5(b"").hexdigest()
     method = request.method.upper()
     path = request.url.path
-    sign_payload = f"{method}{path}{timestamp_str}{body_md5}"
+    sign_payload = (
+        method.encode("utf-8")
+        + path.encode("utf-8")
+        + timestamp_str.encode("utf-8")
+        + body
+    )
 
     expected = hmac.new(
         secret.encode("utf-8"),
-        sign_payload.encode("utf-8"),
+        sign_payload,
         hashlib.sha256,
     ).hexdigest()
 
