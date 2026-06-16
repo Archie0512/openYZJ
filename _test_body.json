@@ -1,0 +1,1 @@
+{"bills":[{"billNo":"TEST001","invoiceProperty":0,"invoiceType":"10xdp","includeTaxFlag":1,"buyerName":"Test","sellerName":"TestCo","sellerTaxpayerId":"911100000000000001","items":[{"seq":1,"goodsName":"test","revenueCode":"2020000000000000000","amount":100,"taxRate":"0.06","taxAmount":6}]}],"autoInvoice":false}

@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import logging
 import time
+from base64 import b64encode
 
 from fastapi import HTTPException, Request
 
@@ -92,6 +93,19 @@ async def require_proxy_auth(request: Request) -> str:
     ).hexdigest()
 
     if not hmac.compare_digest(expected, signature):
+        # DEBUG: 签名验证失败 — 记录详细用于排查 body 差异
+        body_preview = body[:300].decode("utf-8", errors="replace") if body else "(empty)"
+        log.warning(
+            "[auth] 签名失败 | client=%s ts=%s expected=%s received=%s "
+            "body_len=%d body_b64=%s body_preview=%s",
+            client_doc.get("client_id", "?"),
+            timestamp_str,
+            expected,
+            signature,
+            len(body),
+            b64encode(body).decode()[:200],
+            body_preview,
+        )
         raise HTTPException(status_code=401, detail="签名验证失败")
 
     # 设置 caller_id 到 request.state，供中间件和端点处理器使用

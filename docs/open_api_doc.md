@@ -195,7 +195,7 @@ base_url = "https://kimpi.cn"
 
 method = "POST"
 path = "/api/proxy/v1/invoice/create"
-body = '{"bills": [...], "autoInvoice": true}'
+body = '{"requestId":"REQ20260610001","bills": [...], "autoInvoice": true}'
 timestamp = str(int(time.time()))
 
 sign_payload = method.encode() + path.encode() + timestamp.encode() + body.encode()
@@ -231,9 +231,10 @@ print(resp.json())  # {"code":0,"data":{...},"message":"success"}
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | bills | array[object] | 是 | 开票申请单列表 |
-| autoInvoice | boolean | 否 | 提交后立即自动开票，默认 `false` |
-| autoMerge | boolean | 否 | 是否自动合并申请单，默认 `false` |
+| autoInvoice | boolean | 否 | 提交后立即自动开票，默认 `false`。代理层自动将顶层值注入每张单据 |
+| autoMerge | boolean | 否 | 是否自动合并申请单，默认 `false`。代理层自动将顶层值注入每张单据 |
 
 ---
 
@@ -259,6 +260,8 @@ print(resp.json())  # {"code":0,"data":{...},"message":"success"}
 | `029` | 数电普通发票（数电普票） |
 | `012` | 机动车统一销售发票 |
 | `030` | 二手车销售统一发票 |
+| `08xdp` | 数电发票（增值税专用发票） |
+| `10xdp` | 数电发票（普通发票） |
 
 **购买方信息**：
 
@@ -304,24 +307,26 @@ print(resp.json())  # {"code":0,"data":{...},"message":"success"}
 
 ---
 
-**`bills[].items[]` — 发票明细行**：
+**`bills[].billDetail[]` — 发票明细行**：
+
+> 代理层自动将 `items` 字段映射为金蝶要求的 `billDetail`，调用方可使用 `items` 或 `billDetail` 均可。
+> 同样，`billSourceId` 会自动映射为金蝶要求的 `detailId`。
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| seq | number | 是 | 明细序号，从 1 开始 |
-| lineProperty | number | 是 | 行性质：`0`-正常商品行，`1`-折扣行，`2`-被折扣行 |
+| lineProperty | number | 是 | 行性质：`2`-正常商品行，`1`-折扣行（必须紧跟被折扣行） |
 | goodsName | string | 是 | 商品名称（不含税分编码简称前缀），GBK ≤92 字节 |
 | revenueCode | string | 是 | 税收分类编码，长度 ≤19 |
 | amount | number | 是 | 金额（蓝票 >0，红票 <0），长度 (14,2) |
 | taxRate | string | 是 | 税率，支持 `0.13` / `13%` / `13` 三种格式，小数位最多 3 位 |
-| taxAmount | number | 是 | 税额，长度 (14,2) |
+| detailId | string | 是 | 业务系统明细 ID，用于反写回原业务系统，长度 ≤50 |
+| taxAmount | number | 否 | 税额（系统会自动计算），长度 (14,2) |
 | includeTaxAmount | number | 否 | 价税合计，金额×税率±0.06 校验 |
 | quantity | number/string | 否 | 数量，金额不为空时可免填 |
 | price | number/string | 否 | 不含税单价，长度 (14,8) |
 | includeTaxPrice | string | 否 | 含税单价 |
 | specification | string | 否 | 规格型号，GBK 编码 ≤40 字节 |
 | units | string | 否 | 计量单位，GBK 编码 ≤22 字节 |
-| billSourceId | string | 否 | 业务系统明细 ID，用于反写回原业务系统，长度 ≤32 |
 | discountAmount | number | 否 | 折扣金额，折扣行必填，长度 (14,2) |
 | discountRate | string | 否 | 折扣率 |
 | zeroTaxRateFlag | string | 否 | 零税率标识：`1`-出口退税，`2`-不征税，`3`-普通零税率 |
@@ -336,6 +341,7 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
   -H "X-Proxy-Signature: <SIGNATURE>" \
   -d '{
+    "requestId": "REQ20260610001",
     "bills": [{
       "billNo": "ORD20260601001",
       "invoiceProperty": 0,
@@ -345,19 +351,18 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
       "buyerTaxpayerId": "91110000XXXXXXXXXX",
       "sellerName": "销售方公司",
       "sellerTaxpayerId": "91110000YYYYYYYYYY",
-      "items": [{
-        "seq": 1,
-        "lineProperty": 0,
+      "billDetail": [{
+        "lineProperty": 2,
         "goodsName": "技术服务费",
         "revenueCode": "3040201990000000000",
         "amount": 1000.00,
         "taxRate": "0.06",
         "taxAmount": 60.00,
+        "detailId": "ITEM_001",
         "quantity": 1,
         "price": 1000.00,
         "specification": "次",
-        "units": "次",
-        "billSourceId": "ITEM_001"
+        "units": "次"
       }]
     }],
     "autoInvoice": true
@@ -384,11 +389,12 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | applyId | string | 是 | 要撤回的申请单 ID（由 3.2.1 返回） |
 
 **请求示例**：
 ```json
-{"applyId": "A202606110001"}
+{"requestId": "REQ20260610002", "applyId": "A202606110001"}
 ```
 
 **成功响应**：
@@ -398,17 +404,18 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
 
 #### 3.2.3 开票申请单发票查询
 
-`GET /api/proxy/v1/invoice/query/{apply_id}`
+`GET /api/proxy/v1/invoice/query/{apply_id}?requestId={request_id}`
 
 按申请单 ID 查询关联的发票信息。
 
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | apply_id | path | string | 是 | 开票申请单 ID |
+| requestId | query | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 
 **请求示例**：
 ```bash
-curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
+curl "https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001?requestId=REQ20260610003" \
   -H "X-Proxy-Api-Key: <API_KEY>" \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
   -H "X-Proxy-Signature: <SIGNATURE>"
@@ -442,12 +449,13 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | vehicleCode | string | 是 | 车架号（VIN）或合格证编号 |
 | queryType | string | 否 | 查询方式：`byVin`（按车架号）、`byQualifiedNo`（按合格证编号） |
 
 **请求示例**：
 ```json
-{"vehicleCode": "LSVAA4185E2123456", "queryType": "byVin"}
+{"requestId": "REQ20260610004", "vehicleCode": "LSVAA4185E2123456", "queryType": "byVin"}
 ```
 
 **成功响应**：
@@ -472,6 +480,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | applyId | string | 否 | 开票申请单 ID |
 | invoiceType | string | 是 | 发票种类编码，机动车为 `012` |
 | vehicleCode | string | 是 | 车架号（VIN） |
@@ -486,6 +495,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 **请求示例**：
 ```json
 {
+  "requestId": "REQ20260610005",
   "invoiceType": "012",
   "vehicleCode": "LSVAA4185E2123456",
   "buyerName": "购方公司",
@@ -493,8 +503,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
   "sellerName": "销方公司",
   "sellerTaxpayerId": "91110000YYYYYYYYYY",
   "items": [{
-    "seq": 1,
-    "lineProperty": 0,
+    "lineProperty": 2,
     "goodsName": "XX品牌乘用车",
     "revenueCode": "1090101000000000000",
     "amount": 100000.00,
@@ -521,6 +530,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | originalInvoiceCode | string | 是 | 原蓝票发票代码，长度 ≤12 |
 | originalInvoiceNumber | string | 是 | 原蓝票发票号码，长度 ≤8 |
 | redReason | string | 否 | 红冲原因 |
@@ -530,6 +540,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 **请求示例**：
 ```json
 {
+  "requestId": "REQ20260610006",
   "originalInvoiceCode": "044001900111",
   "originalInvoiceNumber": "87654321",
   "redReason": "开票信息有误"
@@ -557,6 +568,7 @@ curl https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001 \
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 | serialNos | array[string] | 是 | 发票流水号列表，每次最多查询 50 条 |
 
 **请求示例**：
@@ -566,7 +578,7 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/batch-query \
   -H "X-Proxy-Api-Key: <API_KEY>" \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
   -H "X-Proxy-Signature: <SIGNATURE>" \
-  -d '{"serialNos": ["SN20260601001", "SN20260601002"]}'
+  -d '{"requestId": "REQ20260610007", "serialNos": ["SN20260601001", "SN20260601002"]}'
 ```
 
 **成功响应**：
@@ -585,17 +597,18 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/batch-query \
 
 #### 3.4.2 单张查询
 
-`GET /api/proxy/v1/digital/query/{serial_no}`
+`GET /api/proxy/v1/digital/query/{serial_no}?requestId={request_id}`
 
 按发票流水号查询单张数电票发票信息。
 
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | serial_no | path | string | 是 | 发票流水号 |
+| requestId | query | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
 
 **请求示例**：
 ```bash
-curl https://kimpi.cn/api/proxy/v1/digital/query/SN20260601001 \
+curl "https://kimpi.cn/api/proxy/v1/digital/query/SN20260601001?requestId=REQ20260610008" \
   -H "X-Proxy-Api-Key: <API_KEY>" \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
   -H "X-Proxy-Signature: <SIGNATURE>"

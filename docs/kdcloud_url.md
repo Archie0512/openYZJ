@@ -1,0 +1,184 @@
+# 发票云(旗舰版)API文档
+
+## Docs
+- [整体介绍](https://open-ultimate.piaozone.com/doc-3626695.md): 
+- [快速开始](https://open-ultimate.piaozone.com/doc-3655357.md): 
+- [加解密](https://open-ultimate.piaozone.com/doc-3626887.md): 
+- [文件预览&文件上传&文件下载](https://open-ultimate.piaozone.com/doc-3626944.md): 
+- [发票数据结构](https://open-ultimate.piaozone.com/doc-3656826.md): 
+- [错误码](https://open-ultimate.piaozone.com/doc-3656853.md): 
+- [常见接口错误](https://open-ultimate.piaozone.com/doc-6490249.md): 
+- 场景指引 [概述](https://open-ultimate.piaozone.com/doc-3739134.md): 
+- 场景指引 [直接开票](https://open-ultimate.piaozone.com/doc-3679085.md): 
+- 场景指引 [单据开票](https://open-ultimate.piaozone.com/doc-3679105.md): 
+- 场景指引 [扫码开票](https://open-ultimate.piaozone.com/doc-3679153.md): 
+- 开票 > 单据开票接口（税控+数电） [单据开票对接指引](https://open-ultimate.piaozone.com/doc-4484343.md): 
+- 开票 > 单据开票接口（税控+数电） [开票申请单错误码列表](https://open-ultimate.piaozone.com/doc-3746910.md): 
+- 开票 > 直接开票接口 > 数电开票 [接入指引（必看）](https://open-ultimate.piaozone.com/doc-3750584.md): 
+- 开票 > 直接开票接口 > 数电开票 [返回编码说明](https://open-ultimate.piaozone.com/doc-3799582.md): 
+- 开票 > 直接开票接口 > 数电开票 [FAQ](https://open-ultimate.piaozone.com/doc-5625609.md): 
+- 收票 > 收票报销 [发票助手对接流程](https://open-ultimate.piaozone.com/doc-3579156.md): 
+- 影像 [开发指南](https://open-ultimate.piaozone.com/doc-3579155.md): 
+- 档案 [对接说明（电子档案云旗舰版）](https://open-ultimate.piaozone.com/doc-4885155.md): 
+- 档案 [异构系统接口定义](https://open-ultimate.piaozone.com/doc-4928657.md): 
+
+## API Docs
+- 授权 [1.01.获取app_token](https://open-ultimate.piaozone.com/api-145421044.md): 发票云旗舰版，针对不同环境和不同租户有不同的访问地址，所以
+- 授权 [1.02获取access_token](https://open-ultimate.piaozone.com/api-145421045.md): 发票云旗舰版，针对不同环境和不同租户有不同的访问地址，所以
+- 开票 > 单据开票接口（税控+数电） [1.1.01 开票申请单生成及开票（支持拆分合并后，再开票）](https://open-ultimate.piaozone.com/api-146003727.md): 本接口用于生成开票申请单，并在满足条件的情况下自动触发开票流程。支持对原始业务数据进行多张合并开票或单张拆分开票处理，也支持自动补全开票项，适用于复杂业务场景下的开票自动化需求。
+- 开票 > 单据开票接口（税控+数电） [1.1.02 开票申请单撤回（对接方主动撤回）](https://open-ultimate.piaozone.com/api-181393410.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.03 开票申请单发票查询](https://open-ultimate.piaozone.com/api-146003729.md): 查询开票申请单下的发票数据
+- 开票 > 单据开票接口（税控+数电） [1.1.04 开票申请单快速红冲（仅支持税控普票）](https://open-ultimate.piaozone.com/api-146003730.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.05 开票申请单批量作废（作废单据的发票，仅支持税控纸票）](https://open-ultimate.piaozone.com/api-146003731.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.06 开票申请单红冲单或作废单生成（星瀚发票云版本5.0.015支持，不支持数电票）](https://open-ultimate.piaozone.com/api-146003732.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.07 开票申请单重开单生成（星瀚发票云版本5.0.015支持，不支持数电票）](https://open-ultimate.piaozone.com/api-146003733.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.08 创建负数单匹配任务](https://open-ultimate.piaozone.com/api-194841116.md): 本接口为异步接口，需要结合1.1.09接口使用
+- 开票 > 单据开票接口（税控+数电） [1.1.09 查询负数单匹配任务结果](https://open-ultimate.piaozone.com/api-194893206.md): 
+- 开票 > 单据开票接口（税控+数电） [1.1.10 单据开票预览](https://open-ultimate.piaozone.com/api-205766529.md): 
+- 开票 > 直接开票接口 > 数电开票 > 电子税局操作 [2.1.30 电子税局登录检测](https://open-ultimate.piaozone.com/api-146003700.md): 
+- 开票 > 直接开票接口 > 数电开票 [2.1.01 数电票蓝字发票开具](https://open-ultimate.piaozone.com/api-149332334.md): 返回编码统一参考：[《返回编码说明》](doc-3799582)
+- 开票 > 直接开票接口 > 数电开票 [2.1.02 数电票回调](https://open-ultimate.piaozone.com/api-146003694.md): 返回编码统一参考：[《返回编码说明》](doc-3799582)
+- 开票 > 直接开票接口 > 数电开票 [2.1.03 红字确认单生成](https://open-ultimate.piaozone.com/api-146003697.md): 1、数电票红冲，税局规定必须先申请红字确认单，再根据红字确认单红冲。本接口仅支持申请红字确认单，申请成功，需再次调用开具红冲接口。
+- 开票 > 直接开票接口 > 数电开票 [2.1.04 数电票红冲（直接红冲或通过红字确认单）](https://open-ultimate.piaozone.com/api-146003698.md): ### 接口说明
+- 开票 > 直接开票接口 > 数电开票 [2.1.05 授信额度查询](https://open-ultimate.piaozone.com/api-146003699.md): 支持通过乐企、RPA查询授信额度
+- 开票 > 直接开票接口 > 数电开票 [2.1.08 红字确认单撤销](https://open-ultimate.piaozone.com/api-146003702.md): 用于撤销红字确认单
+- 开票 > 直接开票接口 > 数电开票 [2.1.09 红字确认单确认或拒绝](https://open-ultimate.piaozone.com/api-146003703.md): 确认或拒绝红字确认单
+- 开票 > 直接开票接口 > 数电开票 [2.1.12 红字确认单下载](https://open-ultimate.piaozone.com/api-146003706.md): 用于下载红字确认单
+- 开票 > 直接开票接口 > 数电开票 [2.1.13 红字确认单编号查询](https://open-ultimate.piaozone.com/api-146003707.md): 用于查询红字确认单
+- 开票 > 直接开票接口 > 数电开票 [2.1.14 发票用途状态查询（发票云版本6.0.11及以上支持乐企、8.0.10及以上支持乐企、电子税局）](https://open-ultimate.piaozone.com/api-169226962.md): 税局最新规则，购方未勾选未入账等未使用蓝票的情形，支持进行部分红冲、全额红冲，红冲时，不需要对方确认。
+- 开票 > 直接开票接口 > 税控开票 [2.2.01税控开票（直接开票，不支持拆分合并）](https://open-ultimate.piaozone.com/api-146003708.md): 0：成功
+- 开票 > 直接开票接口 > 税控开票 [2.2.02税控发票快速红冲（仅支持全额红冲）](https://open-ultimate.piaozone.com/api-146003709.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.03税控发票作废](https://open-ultimate.piaozone.com/api-146003710.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.04税控红字信息表申请](https://open-ultimate.piaozone.com/api-146003711.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.05税控红字信息表下载](https://open-ultimate.piaozone.com/api-146003712.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.06税控发票库存查询](https://open-ultimate.piaozone.com/api-146003714.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.07税控开票设备查询](https://open-ultimate.piaozone.com/api-146003715.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.08税控发票打印发票打印（需安装套打打印组件，仅适用于局域网内的HTTP调用方式）](https://open-ultimate.piaozone.com/api-148963963.md): 状态码：
+- 开票 > 直接开票接口 > 税控开票 [2.2.09税控发票打印（仅适用于组件开票，托管无法使用）](https://open-ultimate.piaozone.com/api-146003716.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.10邮件短信重发（数电票和税控发票都支持）](https://open-ultimate.piaozone.com/api-146003717.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.11税控/数电机动车发票开具](https://open-ultimate.piaozone.com/api-146003718.md): 1、文档说明中，如未单独标记，则描述中的“机动车”包含税控机动车、机动车（数电纸票）、机动车（数电电票），“二手车”包含二手车（数电纸票）、二手车（数电电票）。如需单独标记，会单独描述，例如机动车（数电电票）。
+- 开票 > 直接开票接口 > 税控开票 [2.2.12税控机动车发票作废](https://open-ultimate.piaozone.com/api-146003719.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.13税控/数电机动车发票红冲](https://open-ultimate.piaozone.com/api-148963964.md): 支持红冲数电机动车销售统一发票
+- 开票 > 直接开票接口 > 税控开票 [2.2.14税控机动车发票打印](https://open-ultimate.piaozone.com/api-148963965.md): 
+- 开票 > 直接开票接口 > 税控开票 [2.2.15机动车信息查询（数电专用）](https://open-ultimate.piaozone.com/api-212114753.md): 
+- 开票 > 发票查询接口 [4.1.01已开发票查询](https://open-ultimate.piaozone.com/api-146003723.md): 税控票或税控票+数电票共用时使用；纯数电票开票（比如直接开票-数电开票）请用4.1.04或4.1.03接口。
+- 开票 > 发票查询接口 [4.1.02机动车发票查询（税控）](https://open-ultimate.piaozone.com/api-146003724.md): 
+- 开票 > 发票查询接口 [4.1.03.数电票发票批量查询](https://open-ultimate.piaozone.com/api-146003725.md): 
+- 开票 > 发票查询接口 [4.1.04.数电票发票单张查询](https://open-ultimate.piaozone.com/api-146003726.md): 
+- 开票 > 回调接口（支持除数电票直接开票接口外的开票回调） [5.1.01开票申请单回退接口（星瀚发起退回开票申请单）](https://open-ultimate.piaozone.com/api-146003720.md): 用户在发票云旗舰版开票申请单页面点击【回退上游单据】，调用此接口将选中的开票申请单从发票云旗舰版退回上游业务系统
+- 开票 > 回调接口（支持除数电票直接开票接口外的开票回调） [5.1.02回调接口-按票回调(一次回调一张发票信息)](https://open-ultimate.piaozone.com/api-146003721.md): 默认开票回调方式。每开一张发票就回调一次一个开票申请单如果拆分开具了N张发票，在发票开具成功后，根据发票张数，会回调N次。
+- 开票 > 回调接口（支持除数电票直接开票接口外的开票回调） [5.1.03回调接口-按单回调（单据对应的所有发票开票完毕后一起回调（包含开票成功和开票失败），不支持合并又拆分的场景）](https://open-ultimate.piaozone.com/api-146003722.md): 一个开票申请单如果拆分开具了N张发票，在发票开具完毕后，只全部回调一次（包含开票成功和开票失败），不支持合并又拆分的场景，开票成功失败的都会返回。
+- 开票 > 开票风控接口 [6.0.01 风控解除接口（星瀚发票云版本6.0.6支持）](https://open-ultimate.piaozone.com/api-146003734.md): 返回编码表：
+- 开票 > 扫码开票接口（税控+数电） > 业务系统生成二维码链接模式 [3.1.01业务系统组装二维码链接格式](https://open-ultimate.piaozone.com/api-146003735.md): `测试环境参数`
+- 开票 > 扫码开票接口（税控+数电） > 业务系统生成二维码链接模式 [3.1.02查询订单接口(由客户提供)](https://open-ultimate.piaozone.com/api-146003736.md): 扫码开票二维码规则：
+- 开票 > 扫码开票接口（税控+数电） > 业务系统生成二维码链接模式 [3.1.03 扫码提交购方抬头规则](https://open-ultimate.piaozone.com/api-146003737.md): **1  规则说明**
+- 开票 > 扫码开票接口（税控+数电） > 业务系统生成二维码链接模式 [3.1.04账单中心开票小程序短链接生成](https://open-ultimate.piaozone.com/api-201555744.md): 本接口用于开票账单中心生成微信二维码短链接，生成的url可作为app等非微信客户端打开微信小程序的请求地址
+- 开票 > 扫码开票接口（税控+数电） > 推单星瀚生成二维码链接模式 [3.2.01上传销售单获取二维码链接](https://open-ultimate.piaozone.com/api-146003738.md): 调用流程请参考：【旗舰版】异构对接扫码开票:https://vip.kingdee.com/link/s/Z7RuC
+- 开票 > 信息查询接口 [7.0.01 跨区域涉税事项数据查询](https://open-ultimate.piaozone.com/api-341240355.md): 异构系统调用该接口，可查询跨区域涉税事项数据，支持查询单张或者批量查询，支持通过乐企和电子税局查询。查询成功后，使用提取跨区域涉税事项数据查询结果接口，获取查询结果。
+- 开票 > 信息查询接口 [7.0.02 跨区域涉税事项数据查询结果](https://open-ultimate.piaozone.com/api-341774752.md): 调用跨区域涉税事项数据查询接口后，通过本接口获取查询结果。
+- 收票 > 全票池引入 [5.01全票池导入](https://open-ultimate.piaozone.com/api-145421046.md): 导入发票数据至票池。
+- 收票 > 收票报销 [3.01 打开发票采集页面获取eventCode](https://open-ultimate.piaozone.com/api-145421047.md): 
+- 收票 > 收票报销 [3.02 查看发票获取eventCode](https://open-ultimate.piaozone.com/api-145421048.md): 
+- 收票 > 收票报销 [3.03 保存单据](https://open-ultimate.piaozone.com/api-145421049.md): 业务系统创建单据如费用报销单、财务应付单，完成采集发票后，保存业务单据和发票的关联关系，更改发票使用状态。
+- 收票 > 收票报销 [3.04 删除单据](https://open-ultimate.piaozone.com/api-145421050.md): 解绑发票与业务单据的关系
+- 收票 > 收票报销 [3.05 保存凭证](https://open-ultimate.piaozone.com/api-145421051.md): 业务单据生成凭证，保存发票与记账凭证的关系，回写入账信息。
+- 收票 > 收票报销 [3.06 删除凭证](https://open-ultimate.piaozone.com/api-145421052.md): 解绑发票与记账凭证的关系
+- 收票 > 收票报销 [3.07 长轮询获取发票信息](https://open-ultimate.piaozone.com/api-145421053.md): 采集发票时根据linkKey获取发票信息。
+- 收票 > 收票报销 [3.08 发票验重](https://open-ultimate.piaozone.com/api-145421054.md): 
+- 收票 > 查询全票池的发票 [1.01 发票查询](https://open-ultimate.piaozone.com/api-145421056.md): 查询星瀚收票管理全票池中的发票数据
+- 收票 > 查询全票池的发票 [1.02 发票查询（按流水号查询）](https://open-ultimate.piaozone.com/api-145421057.md): - 发票数据结构在文档：《[发票数据结构](doc-3656826)》有描述
+- 收票 > 查询全票池的发票 [1.03获取单据文件信息](https://open-ultimate.piaozone.com/api-145421058.md): - 发票数据结构在文档：《[发票数据结构](doc-3656826)》有描述
+- 收票 > 查询全票池的发票 [1.04 删除全票池发票](https://open-ultimate.piaozone.com/api-145421059.md): 
+- 收票 > 税局下载发票和勾选认证 [4.01 税局登录](https://open-ultimate.piaozone.com/api-145421060.md): 
+- 收票 > 税局下载发票和勾选认证 [4.02 进项发票表头归集](https://open-ultimate.piaozone.com/api-145421061.md): 
+- 收票 > 税局下载发票和勾选认证 [4.03 进项发票表头归集结果查询](https://open-ultimate.piaozone.com/api-145421062.md): 用异步模式调用接口：[4.02 进项发票表头归集](api-145421061)时，使用本接口查询任务结果
+- 收票 > 税局下载发票和勾选认证 [4.04 获取税款所属期信息](https://open-ultimate.piaozone.com/api-145421063.md): 
+- 收票 > 税局下载发票和勾选认证 [4.05 发票勾选&撤销勾选](https://open-ultimate.piaozone.com/api-145421064.md): 发票勾选是指企业在系统中对取得的增值税专用发票待可抵扣票种进行确认和用途选择的操作，主要用于增值税进项税额抵扣或出口退税。
+- 收票 > 税局下载发票和勾选认证 [4.06 发票勾选结果查询](https://open-ultimate.piaozone.com/api-145421065.md): 用异步模式调用接口：[4.05 发票勾选/撤销勾选](api-145421064)时，通过返回的异步任务号调用本接口查询异步任务的处理结果。
+- 收票 > 税局下载发票和勾选认证 [4.07 当前统计查询](https://open-ultimate.piaozone.com/api-145421066.md): 当前确认统计的相关信息查询
+- 收票 > 税局下载发票和勾选认证 [4.08 生成&撤销统计表](https://open-ultimate.piaozone.com/api-145421067.md): 生成或者撤销统计表
+- 收票 > 税局下载发票和勾选认证 [4.09 生成&撤销统计表结果查询](https://open-ultimate.piaozone.com/api-145421068.md): 异步执行[4.08 生成/撤销统计表](api-145421067)时，使用异步任务号调用本接口查询相关结果。
+- 收票 > 税局下载发票和勾选认证 [4.10 确认统计表](https://open-ultimate.piaozone.com/api-145421069.md): 
+- 收票 > 税局下载发票和勾选认证 [4.11 确认统计表结果查询](https://open-ultimate.piaozone.com/api-145421070.md): 
+- 收票 > 税局下载发票和勾选认证 [4.12 变更税款所属期](https://open-ultimate.piaozone.com/api-145421071.md): 
+- 收票 > 税局下载发票和勾选认证 [4.13 发票预勾选](https://open-ultimate.piaozone.com/api-192132771.md): #接口功能：业务会计在标记星瀚全票池中需要做增值税用途确认的发票，方便税务会计做勾选确认
+- 收票 > 税局下载发票和勾选认证 [4.14 发票预勾选确认](https://open-ultimate.piaozone.com/api-192155101.md): 注意：本接口为异步接口，增值税抵扣预勾选的发票确认之后会变为"已勾选"，根据响应返回的“任务号”调用“预勾选确认结果查询”接口获取结果
+- 收票 > 税局下载发票和勾选认证 [4.15 预勾选确认结果查询](https://open-ultimate.piaozone.com/api-192160841.md): 使用本接口查询调用“发票预勾选确认”接口的结果。
+- 收票 > 税局下载发票和勾选认证 [4.19 历史税款所属期抵扣勾选统计查询](https://open-ultimate.piaozone.com/api-397446505.md): 查询历史税款所属期抵扣勾选统计数据
+- 收票 > 税局下载发票和勾选认证 [4.16 批量创建税局入账申请任务](https://open-ultimate.piaozone.com/api-258669364.md): 直连税局进行税局发票入账及入账状态更新。
+- 收票 > 税局下载发票和勾选认证 [4.17 查询税局入账申请任务结果](https://open-ultimate.piaozone.com/api-258669778.md): 使用本接口查询调用“批量创建税局入账申请任务”接口的结果。
+- 收票 > 税局下载发票和勾选认证 [4.18 出口退税勾选统计查询](https://open-ultimate.piaozone.com/api-369891308.md): 本接口用于支持直连税局电子发票服务平台进行发票用途确认——出口退税统计信息查询，根据自然月份查询纳税人在该月成功提交至税局勾选出口退税的发票、海关缴款书数量的统计数据；
+- 收票 > 识别查验 [2.01 发票查验](https://open-ultimate.piaozone.com/api-145421072.md): 适用于可查验的增值税发票（查验要素）：
+- 收票 > 识别查验 [2.02 发票识别查验](https://open-ultimate.piaozone.com/api-145421073.md): 接口说明：
+- 收票 > 识别查验 [2.03 文件上传](https://open-ultimate.piaozone.com/api-145421074.md): 
+- 收票 > 识别查验 [2.04 发票编辑](https://open-ultimate.piaozone.com/api-145421075.md): 非增值税发票，调用【2.02发票识别查验】进行识别，如果识别数据有误，可以调【2.04发票编辑】接口，变更发票信息
+- 收票 > 全球发票识别 > 全球发票识别异步接口 [ 6.01 申请全球发票识别任务](https://open-ultimate.piaozone.com/api-368020900.md): 1、该接口需要加购智能文档取数产品，按次收费
+- 收票 > 全球发票识别 > 全球发票识别异步接口 [6.02 查询全球发票识别任务结果](https://open-ultimate.piaozone.com/api-368020901.md): 1、该接口需要加购智能文档取数产品，按次收费
+- 收票 > 全球发票识别 > 全球发票识别异步接口 [6.03 回调全球发票识别任务结果](https://open-ultimate.piaozone.com/api-368020902.md): 需在星瀚配置对应回调地址
+- 收票 > 发票签收 [7.01 单据发票签收接口](https://open-ultimate.piaozone.com/api-373138555.md): 单据发票签收接口用于纸质发票签收比对，比对后更新单据或发票的签收状态。
+- 页面类 > 基础设置页面 [基础设置相关页面](https://open-ultimate.piaozone.com/api-145421084.md): 打开页面前需要做登录认证，第三方登录对接参照
+- 页面类 > 开票页面 [开票相关页面](https://open-ultimate.piaozone.com/api-145421085.md): 打开页面前需要做登录认证，第三方登录对接参照
+- 页面类 > 收票页面 [PC端打开选择发票页面](https://open-ultimate.piaozone.com/api-145421087.md): 参照：[《快速开始》](doc-3655357#收票对接)的收票对接一节
+- 页面类 > 收票页面 [PC端打开查看发票页面](https://open-ultimate.piaozone.com/api-145421086.md): 参照：[《快速开始》](doc-3655357#收票对接)的收票对接一节
+- 页面类 > 收票页面 [移动端打开查看发票页面](https://open-ultimate.piaozone.com/api-145421088.md): 参照：[《快速开始》](doc-3655357#收票对接)的收票对接一节
+- 页面类 > 收票页面 [移动端打开选择发票页面](https://open-ultimate.piaozone.com/api-145421089.md): 参照：[《快速开始》](doc-3655357#收票对接)的收票对接一节
+- 页面类 > 数据统计页面 [销项发票统计页面](https://open-ultimate.piaozone.com/api-145421090.md): 打开页面前需要做登录认证，第三方登录对接参照
+- 页面类 [2.1、退出登录API接口](https://open-ultimate.piaozone.com/api-145421083.md): 
+- 影像 > 1.基础接口 [1.01获取eventCode](https://open-ultimate.piaozone.com/api-145421030.md): 
+- 影像 > 1.基础接口 [1.02接收ERP单据推送接口](https://open-ultimate.piaozone.com/api-145421031.md): 
+- 影像 > 2.影像页面 [2.01PC端影像调阅](https://open-ultimate.piaozone.com/api-145421032.md): 
+- 影像 > 2.影像页面 [2.02移动端影像调阅](https://open-ultimate.piaozone.com/api-145421033.md): 
+- 影像 > 2.影像页面 [2.03影像采集页面](https://open-ultimate.piaozone.com/api-145421034.md): 
+- 影像 > 2.影像页面 [2.04影像匹配结果页面](https://open-ultimate.piaozone.com/api-145421035.md): 
+- 影像 > 3.影像操作 [3.01影像退扫](https://open-ultimate.piaozone.com/api-145421036.md): 
+- 影像 > 3.影像操作 [3.02影像取消退扫](https://open-ultimate.piaozone.com/api-145421037.md): 
+- 影像 > 3.影像操作 [3.03影像删除](https://open-ultimate.piaozone.com/api-145421038.md): 
+- 影像 > 3.影像操作 [3.04获取PC端影像调阅页面地址](https://open-ultimate.piaozone.com/api-145421039.md): 
+- 影像 > 3.影像操作 [3.05获取移动端影像调阅页面地址](https://open-ultimate.piaozone.com/api-145421040.md): 
+- 影像 > 3.影像操作 [3.06影像状态查询](https://open-ultimate.piaozone.com/api-145421041.md): 
+- 影像 > 4.采集接口 [4.01影像文件采集](https://open-ultimate.piaozone.com/api-145421042.md): base64和fileDownUrl至少需要其中一个。
+- 影像 > 4.采集接口 [4.02影像单据提交](https://open-ultimate.piaozone.com/api-145421043.md): base64和fileDownUrl至少需要其中一个。
+- 设置类 [3.1、切换组织](https://open-ultimate.piaozone.com/api-145421078.md): 
+- 设置类 [3.2、新增组织（星空ERP专用）](https://open-ultimate.piaozone.com/api-145421079.md): 1、星空新增星瀚组织，会同时对税号或税盘进行授权；
+- 设置类 [3.3、新增租户组织下的员工](https://open-ultimate.piaozone.com/api-145421080.md): # 授权注册接口说明
+- 设置类 [3.4、查询电子税局账号](https://open-ultimate.piaozone.com/api-201880993.md): 
+- 订单 [1.01 产品订阅（平台服务商专用）](https://open-ultimate.piaozone.com/api-145421076.md): 
+- 订单 [发票云创建组织](https://open-ultimate.piaozone.com/api-145421077.md): 
+
+## Schemas
+- 特殊票种 [不动产租赁](https://open-ultimate.piaozone.com/schema-82876894.md): 
+- 特殊票种 [建筑服务](https://open-ultimate.piaozone.com/schema-82880114.md): 
+- 特殊票种 [不动产销售](https://open-ultimate.piaozone.com/schema-82880612.md): 
+- 特殊票种 [货物运输服务](https://open-ultimate.piaozone.com/schema-82890108.md): 
+- 特殊票种 [旅客运输](https://open-ultimate.piaozone.com/schema-90293892.md): 
+- 特殊票种 [车船税明细](https://open-ultimate.piaozone.com/schema-108874660.md): 
+- 特殊票种 [医疗服务（住院）--开发中](https://open-ultimate.piaozone.com/schema-270344063.md): 
+- 特殊票种 [医疗服务（门诊）](https://open-ultimate.piaozone.com/schema-270344376.md): 
+- 收票 [不抵扣原因](https://open-ultimate.piaozone.com/schema-83181069.md): 
+- 收票 [勾选结果代码](https://open-ultimate.piaozone.com/schema-83191178.md): 
+- 收票 [全球发票返回结果 新](https://open-ultimate.piaozone.com/schema-213519613.md): 
+- 收票 [统计表状态](https://open-ultimate.piaozone.com/schema-83192694.md): 
+- 收票 [发票状态（进项，收票）  ](https://open-ultimate.piaozone.com/schema-83188934.md): 
+- 收票 [收票全票池发票增值税用途勾选状态](https://open-ultimate.piaozone.com/schema-175320500.md): 
+- 开票 [数据来源](https://open-ultimate.piaozone.com/schema-187087108.md): 
+- 开票 [发票状态](https://open-ultimate.piaozone.com/schema-187087996.md): 
+- 开票 [销项发票冲红原因](https://open-ultimate.piaozone.com/schema-187090203.md): 
+- 开票 [特殊票种](https://open-ultimate.piaozone.com/schema-187091685.md): 
+- 开票 [减按征税类型](https://open-ultimate.piaozone.com/schema-187094781.md): 
+- [数电票-差额征税](https://open-ultimate.piaozone.com/schema-82891911.md): 
+- [发票种类](https://open-ultimate.piaozone.com/schema-82907377.md): 
+- [发票状态（销项）](https://open-ultimate.piaozone.com/schema-83014325.md): 
+- [数电票特定要素类型](https://open-ultimate.piaozone.com/schema-82969190.md): 
+- [红冲原因](https://open-ultimate.piaozone.com/schema-82909483.md): 
+- [红字确认单状态](https://open-ultimate.piaozone.com/schema-82973292.md): 
+- [发票明细行性质](https://open-ultimate.piaozone.com/schema-82914806.md): 
+- [证件类型](https://open-ultimate.piaozone.com/schema-82953374.md): 
+- [经办人证件类型](https://open-ultimate.piaozone.com/schema-82959942.md): 
+- [优惠政策标识](https://open-ultimate.piaozone.com/schema-82961300.md): 
+- [即征即退类型](https://open-ultimate.piaozone.com/schema-89280234.md): 
+- [苍穹API接口返回值](https://open-ultimate.piaozone.com/schema-78669475.md): 
+- [含税标志](https://open-ultimate.piaozone.com/schema-94892514.md): 
+- [发票查询明细](https://open-ultimate.piaozone.com/schema-94814332.md): 
+- [医疗机构类型代码](https://open-ultimate.piaozone.com/schema-270344073.md): 
+- [医保类型](https://open-ultimate.piaozone.com/schema-270344220.md): 
+- [国家及地区数字代码](https://open-ultimate.piaozone.com/schema-174519849.md): 

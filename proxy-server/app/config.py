@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     kdcloud_language: str = "en"
     kdcloud_usertype: str = "UserName"
 
+    # ── 金蝶统一网关配置 ──────────────────────────
+    kdcloud_business_system_code: str = ""
+    kdcloud_aes_key: str = ""
+
     # ── 代理网关开关与限额 ──────────────────────────
     proxy_api_enabled: bool = True  # 独立容器始终启用
     proxy_rate_limit_default: int = 60

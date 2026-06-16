@@ -44,7 +44,7 @@ async def vehicle_info(
     tm = get_token_manager()
     access_token = await tm.get_valid_access_token(env)
     try:
-        result = await kdcloud.query_vehicle_info(req.model_dump(), access_token)
+        result = await kdcloud.query_vehicle_info(req.model_dump(), access_token, req.requestId)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] vehicle/info 失败: %s", e)
@@ -67,7 +67,7 @@ async def vehicle_invoice(
     tm = get_token_manager()
     access_token = await tm.get_valid_access_token(env)
     try:
-        result = await kdcloud.issue_vehicle_invoice(req.model_dump(), access_token)
+        result = await kdcloud.issue_vehicle_invoice(req.model_dump(), access_token, req.requestId)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] vehicle/invoice 失败: %s", e)
@@ -90,7 +90,7 @@ async def vehicle_red_flush(
     tm = get_token_manager()
     access_token = await tm.get_valid_access_token(env)
     try:
-        result = await kdcloud.red_flush_vehicle(req.model_dump(), access_token)
+        result = await kdcloud.red_flush_vehicle(req.model_dump(), access_token, req.requestId)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] vehicle/red-flush 失败: %s", e)

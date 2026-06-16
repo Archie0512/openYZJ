@@ -85,6 +85,7 @@ class InvoiceCreateRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
     bills: list[dict]
     autoInvoice: bool = False
     autoMerge: bool = False
@@ -95,6 +96,7 @@ class InvoiceRevokeRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
     applyId: str
 
 
@@ -103,6 +105,7 @@ class InvoiceApplyQueryRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
     applyId: str
 
 
@@ -111,11 +114,15 @@ class VehicleInfoQueryRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
+
 
 class VehicleInvoiceRequest(BaseModel):
     """2.2.11 机动车发票开具。"""
 
     model_config = ConfigDict(extra="allow")
+
+    requestId: str
 
 
 class DigitalBatchQueryRequest(BaseModel):
@@ -123,6 +130,7 @@ class DigitalBatchQueryRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
     serialNos: list[str]
 
 
@@ -131,6 +139,7 @@ class DigitalSingleQueryRequest(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    requestId: str
     serialNo: str
 
 
@@ -138,6 +147,8 @@ class VehicleRedFlushRequest(BaseModel):
     """2.2.13 机动车发票红冲。"""
 
     model_config = ConfigDict(extra="allow")
+
+    requestId: str
 
 
 # ── 回调请求模型（存根实现用）─────────────────────────
