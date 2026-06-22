@@ -18,9 +18,9 @@ from app.config import settings
 
 log = logging.getLogger(__name__)
 
-# ── 全局单例 ──────────────────────────────────────────
-_client: Optional[httpx.AsyncClient] = None
-_current_env: str = "test"
+# ── 全局单例（按环境）──────────────────────────────────
+_clients: dict[str, httpx.AsyncClient] = {}
+_default_env: str = "test"
 
 
 def _base_url(env: str) -> str:
@@ -33,68 +33,83 @@ def _base_url(env: str) -> str:
 async def init_kdcloud_client(env: str = "test") -> None:
     """创建全局 httpx 客户端（连接池复用）。
 
+    应为每个环境创建独立的客户端实例，确保不同环境的 API 请求路由到正确的金蝶服务器。
     应在应用启动时调用一次。
     """
-    global _client, _current_env
-    _current_env = env
-    _client = httpx.AsyncClient(
-        base_url=_base_url(env),
-        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        timeout=httpx.Timeout(connect=5.0, read=60.0, write=30.0, pool=5.0),
-        headers={"Content-Type": "application/json"},
-    )
-    log.info("金蝶发票云 HTTP 客户端已初始化 env=%s base=%s", env, _base_url(env))
+    global _clients, _default_env
+    _default_env = env
+    # 初始化 test 和 prod 两个环境的客户端
+    for _env in ("test", "prod"):
+        _clients[_env] = httpx.AsyncClient(
+            base_url=_base_url(_env),
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+            timeout=httpx.Timeout(connect=5.0, read=60.0, write=30.0, pool=5.0),
+            headers={"Content-Type": "application/json"},
+        )
+    log.info("金蝶发票云 HTTP 客户端已初始化 test=%s prod=%s", _base_url("test"), _base_url("prod"))
 
 
-def get_kdcloud_client() -> httpx.AsyncClient:
-    """获取全局 httpx 客户端实例。"""
-    if _client is None:
-        raise RuntimeError("金蝶发票云客户端未初始化，请先调用 init_kdcloud_client()")
-    return _client
+def get_kdcloud_client(env: str = "test") -> httpx.AsyncClient:
+    """获取指定环境的 httpx 客户端实例。
+
+    如果请求的环境不存在，回退到默认环境（启动时指定的 env）。
+    """
+    client = _clients.get(env)
+    if client is not None:
+        return client
+    # 回退到默认环境
+    default = _clients.get(_default_env)
+    if default is not None:
+        log.warning("[kdcloud] 环境 '%s' 的客户端不存在，回退到默认环境 '%s'", env, _default_env)
+        return default
+    raise RuntimeError("金蝶发票云客户端未初始化，请先调用 init_kdcloud_client()")
 
 
 async def close_kdcloud_client() -> None:
-    """释放全局 httpx 客户端。"""
-    global _client
-    if _client is not None:
-        await _client.aclose()
-        _client = None
-        log.info("金蝶发票云 HTTP 客户端已关闭")
+    """释放所有环境的 httpx 客户端。"""
+    global _clients
+    for env_name, client in list(_clients.items()):
+        try:
+            await client.aclose()
+            log.info("金蝶发票云 HTTP 客户端已关闭 env=%s", env_name)
+        except Exception:
+            log.exception("金蝶发票云 HTTP 客户端关闭失败 env=%s", env_name)
+    _clients.clear()
 
 
 # ── 鉴权 ─────────────────────────────────────────────
 
-async def get_app_token() -> dict:
+async def get_app_token(env: str = "test") -> dict:
     """1.01 获取 app_token。
 
     POST /api/getAppToken.do
     """
-    client = get_kdcloud_client()
+    client = get_kdcloud_client(env)
     payload = {
         "appId": settings.kdcloud_app_id,
         "appSecret": settings.kdcloud_app_secret,
         "accountId": settings.kdcloud_account_id,
         "language": settings.kdcloud_language,
     }
-    log.info("[kdcloud] 获取 app_token")
+    log.info("[kdcloud] 获取 app_token env=%s", env)
     resp = await client.post("/api/getAppToken.do", json=payload)
     resp.raise_for_status()
     return resp.json()
 
 
-async def login(app_token: str) -> dict:
+async def login(app_token: str, env: str = "test") -> dict:
     """1.02 获取 access_token（有效期 2 小时）。
 
     POST /api/login.do
     """
-    client = get_kdcloud_client()
+    client = get_kdcloud_client(env)
     payload = {
         "user": settings.kdcloud_user,
         "apptoken": app_token,
         "accountId": settings.kdcloud_account_id,
         "usertype": settings.kdcloud_usertype,
     }
-    log.info("[kdcloud] 获取 access_token")
+    log.info("[kdcloud] 获取 access_token env=%s", env)
     resp = await client.post("/api/login.do", json=payload)
     resp.raise_for_status()
     return resp.json()
@@ -185,12 +200,13 @@ async def _call_gateway(
     access_token: str,
     label: str,
     request_id: str,
+    env: str = "test",
 ) -> dict:
     """统一网关调用：构造请求 → POST /kapi/app/sim/openApi → 解码响应 data。"""
-    client = get_kdcloud_client()
+    client = get_kdcloud_client(env)
     req = _build_gateway_request(interface_code, data_content, request_id)
     headers = _build_gateway_headers(access_token)
-    log.info("[kdcloud] %s interfaceCode=%s requestId=%s", label, interface_code, request_id)
+    log.info("[kdcloud] %s interfaceCode=%s requestId=%s env=%s", label, interface_code, request_id, env)
     body_preview = json.dumps(req, ensure_ascii=False)
     log.info("[kdcloud] >>> 请求体: %s", body_preview) if len(body_preview) < 5000 else log.info("[kdcloud] >>> 请求体(截断): %s...", body_preview[:5000])
     resp = await client.post("/kapi/app/sim/openApi", json=req, headers=headers)
@@ -207,69 +223,69 @@ async def _call_gateway(
 
 # ── 开票 ─────────────────────────────────────────────
 
-async def create_invoice(data_content: dict, access_token: str, request_id: str) -> dict:
+async def create_invoice(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """1.1.01 开票申请单生成及开票。
 
     POST /kapi/app/sim/openApi  interfaceCode=BILL.PUSH
     """
-    return await _call_gateway("BILL.PUSH", data_content, access_token, "开票申请单生成", request_id)
+    return await _call_gateway("BILL.PUSH", data_content, access_token, "开票申请单生成", request_id, env)
 
 
-async def revoke_invoice(data_content: dict, access_token: str, request_id: str) -> dict:
+async def revoke_invoice(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """1.1.02 开票申请单撤回。
 
     POST /kapi/app/sim/openApi  interfaceCode=BILL.WITHDRAW
     """
-    return await _call_gateway("BILL.WITHDRAW", data_content, access_token, "开票申请单撤回", request_id)
+    return await _call_gateway("BILL.WITHDRAW", data_content, access_token, "开票申请单撤回", request_id, env)
 
 
-async def query_invoice_apply(data_content: dict, access_token: str, request_id: str) -> dict:
+async def query_invoice_apply(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """1.1.03 开票申请单发票查询。
 
     POST /kapi/app/sim/openApi  interfaceCode=BILL.INVOICE.QUERY
     """
-    return await _call_gateway("BILL.INVOICE.QUERY", data_content, access_token, "开票申请单发票查询", request_id)
+    return await _call_gateway("BILL.INVOICE.QUERY", data_content, access_token, "开票申请单发票查询", request_id, env)
 
 
 # ── 机动车 ───────────────────────────────────────────
 
-async def query_vehicle_info(data_content: dict, access_token: str, request_id: str) -> dict:
+async def query_vehicle_info(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """2.2.15 机动车信息查询（数电专用）。
 
     POST /kapi/app/sim/openApi  interfaceCode=QUIERY.VEHICLE.INFO
     """
-    return await _call_gateway("QUIERY.VEHICLE.INFO", data_content, access_token, "机动车信息查询", request_id)
+    return await _call_gateway("QUIERY.VEHICLE.INFO", data_content, access_token, "机动车信息查询", request_id, env)
 
 
-async def issue_vehicle_invoice(data_content: dict, access_token: str, request_id: str) -> dict:
+async def issue_vehicle_invoice(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """2.2.11 机动车发票开具。
 
     POST /kapi/app/sim/openApi  interfaceCode=INVOICE.OPEN.VEHICLE
     """
-    return await _call_gateway("INVOICE.OPEN.VEHICLE", data_content, access_token, "机动车发票开具", request_id)
+    return await _call_gateway("INVOICE.OPEN.VEHICLE", data_content, access_token, "机动车发票开具", request_id, env)
 
 
-async def red_flush_vehicle(data_content: dict, access_token: str, request_id: str) -> dict:
+async def red_flush_vehicle(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """2.2.13 机动车发票红冲。
 
     POST /kapi/app/sim/openApi  interfaceCode=INVOICE.RED.VEHICLE
     """
-    return await _call_gateway("INVOICE.RED.VEHICLE", data_content, access_token, "机动车发票红冲", request_id)
+    return await _call_gateway("INVOICE.RED.VEHICLE", data_content, access_token, "机动车发票红冲", request_id, env)
 
 
 # ── 数电票查询 ───────────────────────────────────────
 
-async def batch_query_digital(data_content: dict, access_token: str, request_id: str) -> dict:
+async def batch_query_digital(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """4.1.03 数电票发票批量查询。
 
     POST /kapi/app/sim/openApi  interfaceCode=ALLE.BATCH.QUERY
     """
-    return await _call_gateway("ALLE.BATCH.QUERY", data_content, access_token, "数电票批量查询", request_id)
+    return await _call_gateway("ALLE.BATCH.QUERY", data_content, access_token, "数电票批量查询", request_id, env)
 
 
-async def single_query_digital(data_content: dict, access_token: str, request_id: str) -> dict:
+async def single_query_digital(data_content: dict, access_token: str, request_id: str, env: str = "test") -> dict:
     """4.1.04 数电票发票单张查询。
 
     POST /kapi/app/sim/openApi  interfaceCode=ALLE.INVOICE.QUERY
     """
-    return await _call_gateway("ALLE.INVOICE.QUERY", data_content, access_token, "数电票单张查询", request_id)
+    return await _call_gateway("ALLE.INVOICE.QUERY", data_content, access_token, "数电票单张查询", request_id, env)

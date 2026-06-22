@@ -74,7 +74,7 @@ async def invoice_create(
     try:
         # 字段名转换 + 注入 autoInvoice / autoMerge 到每条单据
         data_content = _translate_bills(req.bills, req.autoInvoice, req.autoMerge)
-        result = await kdcloud.create_invoice(data_content, access_token, req.requestId)
+        result = await kdcloud.create_invoice(data_content, access_token, req.requestId, env)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] invoice/create 失败: %s", e)
@@ -93,7 +93,8 @@ async def invoice_revoke(
     tm = get_token_manager()
     access_token = await tm.get_valid_access_token(env)
     try:
-        result = await kdcloud.revoke_invoice(req.model_dump(), access_token, req.requestId)
+        data = req.model_dump(exclude={"requestId"})
+        result = await kdcloud.revoke_invoice(data, access_token, req.requestId, env)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] invoice/revoke 失败: %s", e)
@@ -115,7 +116,7 @@ async def invoice_query(
     try:
         # 构造查询参数，合并 query_params 中的额外字段
         data_content = {"serialNo": apply_id, **dict(request.query_params)}
-        result = await kdcloud.query_invoice_apply(data_content, access_token, requestId)
+        result = await kdcloud.query_invoice_apply(data_content, access_token, requestId, env)
         return ProxyResponse(data=result, message="success")
     except Exception as e:
         log.error("[proxy] invoice/query 失败: %s", e)

@@ -115,7 +115,7 @@ class TokenManager:
 
         # 如果 app_token 过期，获取新的
         if not app_token:
-            app_resp = await kdcloud.get_app_token()
+            app_resp = await kdcloud.get_app_token(env)
             app_data = app_resp.get("data", {})
             if not app_data.get("success"):
                 raise RuntimeError(f"获取 app_token 失败: {app_data.get('error_desc', app_resp)}")
@@ -124,7 +124,7 @@ class TokenManager:
             app_expires_at = datetime.fromtimestamp(app_expire_time / 1000, tz=timezone.utc)
 
         # 获取 access_token（始终刷新）
-        login_resp = await kdcloud.login(app_token)
+        login_resp = await kdcloud.login(app_token, env)
         login_data = login_resp.get("data", {})
         if not login_data.get("success"):
             raise RuntimeError(f"获取 access_token 失败: {login_data.get('error_desc', login_resp)}")
@@ -168,13 +168,17 @@ def get_token_manager() -> TokenManager:
 
 
 async def init_token_manager() -> None:
-    """初始化 TokenManager（在应用启动时调用，预取 token）。"""
+    """初始化 TokenManager（在应用启动时调用，预取 token）。
+
+    同时为 test 和 prod 环境预取 token，确保首次请求无需等待冷启动。
+    """
     tm = get_token_manager()
-    try:
-        await tm.ensure_fresh()
-        log.info("[token_mgr] 初始化完成，token 已就绪")
-    except Exception:
-        log.warning("[token_mgr] 初始化时预取 token 失败，将在首次请求时重试")
+    for env in ("test", "prod"):
+        try:
+            await tm.ensure_fresh(env)
+            log.info("[token_mgr] 初始化完成 env=%s，token 已就绪", env)
+        except Exception:
+            log.warning("[token_mgr] 初始化 env=%s 时预取 token 失败，将在首次请求时重试", env)
 
 
 async def start_token_refresh_loop() -> None:
@@ -189,8 +193,9 @@ async def start_token_refresh_loop() -> None:
 
     while True:
         await asyncio.sleep(interval)
-        try:
-            await tm.ensure_fresh()
-            log.debug("[token_mgr] 后台主动刷新完成")
-        except Exception:
-            log.exception("[token_mgr] 后台主动刷新异常")
+        for env in ("test", "prod"):
+            try:
+                await tm.ensure_fresh(env)
+                log.debug("[token_mgr] 后台主动刷新完成 env=%s", env)
+            except Exception:
+                log.exception("[token_mgr] 后台主动刷新异常 env=%s", env)

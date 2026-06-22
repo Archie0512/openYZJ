@@ -97,14 +97,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         request.state.request_id = request_id
         request.state.start_time = time.monotonic()
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except Exception:
+            elapsed_ms = int((time.monotonic() - request.state.start_time) * 1000)
+            caller_id = getattr(request.state, "caller_id", "unknown")
+            log.info(
+                "[proxy] request_id=%s caller=%s method=%s path=%s status=500 latency=%dms",
+                request_id, caller_id, request.method, path, elapsed_ms,
+            )
+            raise
 
         elapsed_ms = int((time.monotonic() - request.state.start_time) * 1000)
         caller_id = getattr(request.state, "caller_id", "unknown")
 
         log.info(
             "[proxy] request_id=%s caller=%s method=%s path=%s status=%d latency=%dms",
-            request_id, caller_id, request.method, path, response.status_code, elapsed_ms,
+            request_id, caller_id, request.method, path, status_code, elapsed_ms,
         )
 
         return response

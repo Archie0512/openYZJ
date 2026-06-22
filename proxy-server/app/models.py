@@ -135,12 +135,18 @@ class DigitalBatchQueryRequest(BaseModel):
 
 
 class DigitalSingleQueryRequest(BaseModel):
-    """4.1.04 数电票发票单张查询。"""
+    """4.1.04 数电票发票单张查询。
+
+    金蝶 API ``data`` 内层字段：
+    - ``serialNo`` 流水号（与 invoiceNum 二选一）
+    - ``sellerTaxpayerId``（必填）销售方纳税人识别号
+    """
 
     model_config = ConfigDict(extra="allow")
 
     requestId: str
     serialNo: str
+    sellerTaxpayerId: str = Field(..., description="销售方纳税人识别号，金蝶 API 必填")
 
 
 class VehicleRedFlushRequest(BaseModel):

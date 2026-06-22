@@ -404,7 +404,7 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
 
 #### 3.2.3 开票申请单发票查询
 
-`GET /api/proxy/v1/invoice/query/{apply_id}?requestId={request_id}`
+`GET /api/proxy/v1/invoice/query/{apply_id}?requestId={request_id}&sellerTaxpayerId={seller_taxpayer_id}`
 
 按申请单 ID 查询关联的发票信息。
 
@@ -412,10 +412,13 @@ curl -X POST https://kimpi.cn/api/proxy/v1/invoice/create \
 |------|------|------|------|------|
 | apply_id | path | string | 是 | 开票申请单 ID |
 | requestId | query | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
+| sellerTaxpayerId | query | string | 是 | 销售方纳税人识别号，金蝶 API 必填字段 |
+
+> ⚠️ `requestId` 仅用于网关外层标识，不会编码进金蝶 API `data` 内层。
 
 **请求示例**：
 ```bash
-curl "https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001?requestId=REQ20260610003" \
+curl "https://kimpi.cn/api/proxy/v1/invoice/query/A202606110001?requestId=REQ20260610003&sellerTaxpayerId=91110000YYYYYYYYYY" \
   -H "X-Proxy-Api-Key: <API_KEY>" \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
   -H "X-Proxy-Signature: <SIGNATURE>"
@@ -597,21 +600,26 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/batch-query \
 
 #### 3.4.2 单张查询
 
-`GET /api/proxy/v1/digital/query/{serial_no}?requestId={request_id}`
+`POST /api/proxy/v1/digital/query`
 
 按发票流水号查询单张数电票发票信息。
 
-| 参数 | 位置 | 类型 | 必填 | 说明 |
-|------|------|------|------|------|
-| serial_no | path | string | 是 | 发票流水号 |
-| requestId | query | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| requestId | string | 是 | 调用方生成的唯一请求 ID，用于去重和链路追踪 |
+| serialNo | string | 是 | 发票流水号（与 invoiceNum 二选一） |
+| sellerTaxpayerId | string | 是 | 销售方纳税人识别号，金蝶 API 必填字段 |
+
+> ⚠️ `requestId` 仅用于网关外层标识，不会编码进金蝶 API `data` 内层。
 
 **请求示例**：
 ```bash
-curl "https://kimpi.cn/api/proxy/v1/digital/query/SN20260601001?requestId=REQ20260610008" \
+curl -X POST https://kimpi.cn/api/proxy/v1/digital/query \
+  -H "Content-Type: application/json" \
   -H "X-Proxy-Api-Key: <API_KEY>" \
   -H "X-Proxy-Timestamp: <TIMESTAMP>" \
-  -H "X-Proxy-Signature: <SIGNATURE>"
+  -H "X-Proxy-Signature: <SIGNATURE>" \
+  -d '{"requestId": "REQ20260610008", "serialNo": "SN20260601001", "sellerTaxpayerId": "91440300MA5G9GK78Y"}'
 ```
 
 **成功响应**：
