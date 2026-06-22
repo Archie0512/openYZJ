@@ -88,6 +88,7 @@ async def get_app_token(env: str = "test") -> dict:
     payload = {
         "appId": settings.kdcloud_app_id,
         "appSecret": settings.kdcloud_app_secret,
+        "tenantid": settings.get_tenant_id(env),
         "accountId": settings.kdcloud_account_id,
         "language": settings.kdcloud_language,
     }
@@ -106,6 +107,7 @@ async def login(app_token: str, env: str = "test") -> dict:
     payload = {
         "user": settings.kdcloud_user,
         "apptoken": app_token,
+        "tenantid": settings.get_tenant_id(env),
         "accountId": settings.kdcloud_account_id,
         "usertype": settings.kdcloud_usertype,
     }

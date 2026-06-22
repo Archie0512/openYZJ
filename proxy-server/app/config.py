@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     kdcloud_account_id: str = ""
     kdcloud_language: str = "en"
     kdcloud_usertype: str = "UserName"
+    kdcloud_test_tenant_id: str = "baode.test"
+    kdcloud_prod_tenant_id: str = "baode"
+
+    def get_tenant_id(self, env: str) -> str:
+        """按环境返回对应的金蝶租户ID（tenantid）。"""
+        if env == "prod":
+            return self.kdcloud_prod_tenant_id
+        return self.kdcloud_test_tenant_id
 
     # ── 金蝶统一网关配置 ──────────────────────────
     kdcloud_business_system_code: str = ""
