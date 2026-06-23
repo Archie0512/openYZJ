@@ -92,12 +92,15 @@ class InvoiceCreateRequest(BaseModel):
 
 
 class InvoiceRevokeRequest(BaseModel):
-    """1.1.02 开票申请单撤回。"""
+    """1.1.02 开票申请单撤回。
+
+    直接透传客户端请求体数据到金蝶 API。
+    金蝶要求 data 内层字段：serialNos（单据编号数组），可选 orgCode / sellerTaxpayerId。
+    """
 
     model_config = ConfigDict(extra="allow")
 
     requestId: str
-    applyId: str
 
 
 class InvoiceApplyQueryRequest(BaseModel):
