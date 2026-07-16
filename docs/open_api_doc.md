@@ -710,6 +710,66 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/query \
 
 错误码：非法 ObjectId → 400；不存在 → 404。
 
+#### 3.5.2 出站转发到 System A
+
+通过 admin 手动 replay 端点和/或运行时开关，将已落库的按票回调（5.1.02）**转换并转发**给 System A 的 `InvoiceCallback` 接口。本期仅支持 `by-invoice` 端点，`by-apply`/`apply-return` 暂不支持。
+
+**报文转换规则**（依据 `docs/systemA_InvoiceCallback_接口文档.md`）：
+
+内层从金蝶回调 `data` 解码后（base64 → JSON）提取 7 字段，重新 base64 编码组装：
+
+| System A 内层字段 | 金蝶来源 | 必填 |
+|---|---|---|
+| `billNo` | `data.billNo` | 是 |
+| `invoiceDate` | `data.invoiceDate` | 否 |
+| `invoiceNum` | `data.invoiceNum` | 否 |
+| `totalAmount` | `data.totalAmount` | 否 |
+| `totalTaxAmount` | `data.totalTaxAmount` | 否 |
+| `invoicePdfFileUrl` | `data.invoicePdfFileUrl` | 否 |
+| `drawer` | `data.drawer` | 否 |
+
+**`proxy_client` 配置扩展**：创建/更新 proxy_client 时可填 `callback_url` 字段（System A 接收地址）。金蝶回调 `data` 中的 `systemSource` 字段与 proxy_client 的 `client_name`/`client_id` 匹配后自动关联，replay 时按此定位目标地址。
+
+**运行时转发开关**（免重启）：
+
+| 端点 | 说明 |
+|---|---|
+| `GET /api/admin/forwarding-config` | 查看开关 |
+| `PUT /api/admin/forwarding-config` | `{"auto_forward_enabled":true/false}` 动态切换，立即生效 |
+
+> 开关默认 **false**（关闭）。打开后，每条 by-invoice 回调落库成功即 fire-and-forget 自动转发一次（失败不自动重试）。
+
+**手动 replay 端点**：
+
+| 端点 | 说明 |
+|---|---|
+| `POST /api/admin/callback-events/{event_id}/replay` | 单条重放，可重复调用，每次累加 `forward_attempts` |
+
+请求体（均为可选）：
+```json
+{ "target_url": "http://...", "client_id": "systemA" }
+```
+目标 URL 优先级：`target_url` > `client_id` 的 `callback_url` > 落库时匹配的 `matched_client_id` 对应的 `callback_url`。非 by-invoice 端点返回 422。
+
+响应：
+```json
+{ "forwarded": true, "status_code": 200, "forward_attempts": 2, "target_url": "http://...", "error": null }
+```
+
+**kdcloud_callbacks 转发状态字段**（新增）：
+
+| 字段 | 说明 |
+|---|---|
+| `forward_status` | `"not_forwarded"` / `"sent"` / `"failed"` / `"unsupported"` |
+| `forward_attempts` | 转发次数 |
+| `last_forward_at` | 最近一次转发时间 |
+| `last_forward_status_code` | System A HTTP 状态码 |
+| `last_forward_error` | 错误信息（如有） |
+| `forward_history` | 最近 10 次转发结果数组 |
+
+**联调脚本**：[scripts/replay_to_system_a.sh](file:///d:/Downloads/.vibeCode/.openYZJ/scripts/replay_to_system_a.sh) — 支持按 `--serial-no` / `--bill-no` / `--id` 查并重放。
+
+
 
 
 ---
