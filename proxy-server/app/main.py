@@ -15,6 +15,7 @@ from fastapi import FastAPI, Request
 
 from app.config import settings
 from app import mongodb
+from app.db_indexes import ensure_indexes
 from app.kdcloud_client import init_kdcloud_client, close_kdcloud_client
 from app.token_manager import init_token_manager, start_token_refresh_loop
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
     log.info("代理网关启动中, env=%s", settings.env)
     await mongodb.connect()
     log.info("MongoDB 已就绪")
+
+    # 初始化代理网关专属集合索引（kdcloud_callbacks 等）
+    await ensure_indexes(mongodb.get_db())
 
     # 初始化金蝶发票云 HTTP 客户端（连接池）
     await init_kdcloud_client()
