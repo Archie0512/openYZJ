@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -27,6 +28,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app import mongodb
+from app.forwarder import forward_to_system_a, record_forward_result
+from app.runtime_config import get_auto_forward_enabled
 
 log = logging.getLogger(__name__)
 
@@ -171,6 +174,33 @@ async def _match_client_id(system_sources: list) -> str | None:
         return None
 
 
+async def _safe_auto_forward(event_id) -> None:
+    """自动转发（fire-and-forget）：查 doc → 用 matched_client_id 的 callback_url 转发。
+
+    仅在开关开启且 endpoint==by-invoice 时被调度；失败只记日志，不重试。
+    """
+    try:
+        db = mongodb.get_db()
+        doc = await db.kdcloud_callbacks.find_one({"_id": event_id})
+        if not doc:
+            return
+        cid = doc.get("matched_client_id")
+        target_url = ""
+        if cid:
+            client = await db.proxy_clients.find_one({"client_id": cid}, {"callback_url": 1})
+            if client:
+                target_url = client.get("callback_url") or ""
+        if not target_url:
+            log.warning("[proxy] 自动转发跳过 event=%s：无可用 callback_url", event_id)
+            return
+        result = await forward_to_system_a(doc, target_url)
+        await record_forward_result(db, event_id, target_url, result)
+        log.info("[proxy] 自动转发 event=%s ok=%s status=%s",
+                 event_id, result.get("ok"), result.get("status_code"))
+    except Exception as e:  # noqa: BLE001 — 自动转发不得影响主流程
+        log.error("[proxy] 自动转发异常 event=%s err=%s", event_id, e)
+
+
 async def _persist_and_ack(request: Request, tag: str) -> JSONResponse:
     """读原始 body → 解析 → 落库 → 返回金蝶格式 ACK。
 
@@ -181,13 +211,16 @@ async def _persist_and_ack(request: Request, tag: str) -> JSONResponse:
     doc = _build_doc(request, tag, raw, parsed, parse_err)
     doc["matched_client_id"] = await _match_client_id(doc.get("system_sources") or [])
     try:
-        await mongodb.get_db().kdcloud_callbacks.insert_one(doc)
+        res = await mongodb.get_db().kdcloud_callbacks.insert_one(doc)
         log.info(
             "[proxy] callback/%s 已入库 raw_len=%d interface_code=%s "
             "serial_nos=%s bill_nos=%s matched_client=%s parse_err=%s",
             tag, doc["raw_len"], doc["interface_code"],
             doc["serial_nos"], doc["bill_nos"], doc["matched_client_id"], parse_err,
         )
+        # 自动转发 hook：仅 by-invoice + 开关开启时 fire-and-forget（不阻塞金蝶 ACK）
+        if tag == "by-invoice" and await get_auto_forward_enabled():
+            asyncio.create_task(_safe_auto_forward(res.inserted_id))
     except Exception as e:  # noqa: BLE001 — 降级保护：DB 挂了不能拖累金蝶重推
         log.error(
             "[proxy] callback/%s DB 写入失败（仍返回 200 ACK）err=%s raw=%s",
