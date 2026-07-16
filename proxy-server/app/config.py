@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     proxy_token_refresh_margin: int = 600
     proxy_max_body_size_mb: int = 10
 
+    # ── 出站转发到 System A ──────────────────────────
+    # 目标地址存 proxy_clients.callback_url（每 client 一个）；
+    # 自动转发开关存 proxy_settings 集合（运行时可切换，不在此处）。
+    system_a_forward_timeout: int = 10  # 转发 HTTP 超时（秒）
+
     @property
     def mongo_uri(self) -> str:
         """构造 MongoDB 连接 URI（使用 admin 库进行身份验证）。"""
