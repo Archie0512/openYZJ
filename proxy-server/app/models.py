@@ -174,3 +174,15 @@ class ForwardingConfigReq(BaseModel):
     """PUT /api/admin/forwarding-config 入参（运行时自动转发开关）。"""
 
     auto_forward_enabled: bool
+
+
+class ReplayReq(BaseModel):
+    """POST /api/admin/callback-events/{id}/replay 入参（均可选）。
+
+    - target_url: 显式指定 System A 接收地址（联调覆盖，最高优先）
+    - client_id:  指定用哪个 proxy_client 的 callback_url
+    未提供则回退到落库时匹配的 matched_client_id 对应 client 的 callback_url。
+    """
+
+    target_url: Optional[str] = None
+    client_id: Optional[str] = None

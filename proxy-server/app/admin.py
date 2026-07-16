@@ -14,11 +14,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.admin_auth import require_admin
 from app.crypto import encrypt_secret
 from app import mongodb, runtime_config
+from app.forwarder import (
+    ForwardConfigError,
+    ForwardUnsupportedError,
+    forward_to_system_a,
+    record_forward_result,
+)
 from app.models import (
     ForwardingConfigReq,
     ProxyClientCreateReq,
     ProxyClientPublic,
     ProxyClientUpdateReq,
+    ReplayReq,
 )
 
 router = APIRouter(
@@ -224,6 +231,58 @@ async def get_callback_event(event_id: str) -> dict:
     if not doc:
         raise HTTPException(404, "callback event not found")
     return _serialize(doc)
+
+
+async def _resolve_replay_target(db, doc: dict, req_target_url, req_client_id) -> str:
+    """解析 replay 目标 URL：显式 target_url > 指定 client_id > doc.matched_client_id。"""
+    if req_target_url:
+        return req_target_url
+    cid = req_client_id or doc.get("matched_client_id")
+    if cid:
+        client = await db.proxy_clients.find_one({"client_id": cid}, {"callback_url": 1})
+        if client and client.get("callback_url"):
+            return client["callback_url"]
+    return ""
+
+
+@callback_events_router.post("/{event_id}/replay")
+async def replay_callback_event(event_id: str, req: ReplayReq | None = None):
+    """把一条已落库回调转发给 System A（可重复、可指定 target_url/client_id）。"""
+    try:
+        oid = ObjectId(event_id)
+    except (InvalidId, TypeError) as e:
+        raise HTTPException(400, f"invalid event id: {event_id}") from e
+
+    db = mongodb.get_db()
+    doc = await db.kdcloud_callbacks.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(404, "callback event not found")
+
+    if doc.get("endpoint") != "by-invoice":
+        await db.kdcloud_callbacks.update_one(
+            {"_id": oid}, {"$set": {"forward_status": "unsupported"}}
+        )
+        raise HTTPException(422, f"endpoint={doc.get('endpoint')} 不支持转发（仅 by-invoice）")
+
+    req = req or ReplayReq()
+    target_url = await _resolve_replay_target(db, doc, req.target_url, req.client_id)
+    if not target_url:
+        raise HTTPException(400, "无法解析 target_url：未显式传入，且 client 无 callback_url")
+
+    try:
+        result = await forward_to_system_a(doc, target_url)
+    except (ForwardConfigError, ForwardUnsupportedError) as e:
+        raise HTTPException(422, str(e)) from e
+
+    await record_forward_result(db, oid, target_url, result)
+    updated = await db.kdcloud_callbacks.find_one({"_id": oid}, {"forward_attempts": 1})
+    return {
+        "forwarded": result["ok"],
+        "status_code": result["status_code"],
+        "forward_attempts": (updated or {}).get("forward_attempts"),
+        "target_url": target_url,
+        "error": result["error"],
+    }
 
 
 # ═════════════════════════════════════════════════════════════
