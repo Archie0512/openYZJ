@@ -633,15 +633,17 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/query \
 
 ---
 
-### 3.5 回调接口（存根实现）
+### 3.5 回调接口（持久化实现）
 
-以下接口当前为**存根实现**（仅记录日志并返回 `{"code":0,"message":"received"}`），待 System A 提供转发地址后增加实际转发逻辑。
+以下接口用于接收金蝶发票云侧发起的**入站回调通知**。收到即写入 MongoDB `kdcloud_callbacks` 集合（append-only，90 天 TTL 自动清理），并按金蝶规范返回成功 ACK。当前**不做出站转发到 System A**，如需消费落库数据请调用下方的 admin 查询 API。
 
 | 端点 | 方法 | 说明 | 回调触发场景 |
 |------|------|------|------------|
 | `/api/proxy/v1/callbacks/apply-return` | POST | 开票申请单回退通知 | 发票云侧主动退回开票申请单时触发 |
 | `/api/proxy/v1/callbacks/by-invoice` | POST | 按票回调通知 | 每开一张发票回调一次（拆分 N 张则回调 N 次） |
 | `/api/proxy/v1/callbacks/by-apply` | POST | 按单批量回调通知 | 所有发票开具完毕后一次性回调（含成功/失败） |
+
+> **鉴权**：这三个端点为入站接收，**不校验** HMAC / Bearer Token（金蝶不会携带 `X-Proxy-*` 头）。
 
 **回调请求体公共字段**：
 
@@ -653,6 +655,62 @@ curl -X POST https://kimpi.cn/api/proxy/v1/digital/query \
 | data | object/array | 是 | 回调数据体（按票回调为单对象，按单回调为数组） |
 
 > `data` 字段的具体结构与 3.2.1 响应格式一致，包含发票号码、代码、金额、明细、版式文件 URL 等信息。
+
+**响应格式**（严格遵循金蝶发票云规范，见 `docs/kdcloud_md.md` 5.1.03 返回示例；不符合则金蝶会判定失败并反复重推）：
+
+```json
+{ "message": "回调成功", "errorCode": "0", "success": true }
+```
+
+> **降级策略**：MongoDB 写入失败时仍返回 200 ACK + ERROR 日志（避免金蝶重推风暴）。运维监控 ERROR 日志后手动补录。
+
+#### 3.5.1 admin 查询 API（`kdcloud_callbacks` 集合）
+
+管理员通过下面两个接口审计已落库的回调记录。鉴权走 `Authorization: Bearer <ADMIN_TOKEN>`。
+
+**GET `/api/admin/callback-events`** — 列表查询
+
+支持的查询参数（全部可选）：
+
+| 参数 | 说明 |
+|------|------|
+| `endpoint` | 端点名：`by-invoice` / `by-apply` / `apply-return` |
+| `serial_no` | 发票流水号（打平字段精确匹配） |
+| `bill_no` | 单据号 |
+| `interface_code` | `INVOICE.OPEN` / `INVOICE.RED` / `INVOICE.CANCEL` |
+| `date_from`, `date_to` | 起止时间，`YYYY-MM-DD` 或 ISO 8601 |
+| `limit`, `offset` | 分页，默认 50 / 0，`limit` 上限 500 |
+
+响应示例：
+
+```json
+{
+  "total": 128,
+  "limit": 50, "offset": 0,
+  "items": [
+    {
+      "_id": "64d0f0a0f0a0f0a0f0a0f0a0",
+      "endpoint": "by-invoice",
+      "received_at": "2026-07-15T06:00:00+00:00",
+      "interface_code": "INVOICE.OPEN",
+      "return_code": "0",
+      "serial_nos": ["SN123"],
+      "bill_nos": ["BILL001"],
+      "raw_len": 512
+    }
+  ]
+}
+```
+
+> 列表投影不返回 `raw_body` / `headers` / `parsed` 大字段以减轻网络负载，详情请调用下面的详情接口。
+
+**GET `/api/admin/callback-events/{event_id}`** — 详情
+
+返回完整文档，包括原始 `raw_body`、`headers`、`parsed`、`query_params`、`client_ip` 等所有字段。
+
+错误码：非法 ObjectId → 400；不存在 → 404。
+
+
 
 ---
 
