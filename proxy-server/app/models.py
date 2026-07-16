@@ -160,9 +160,5 @@ class VehicleRedFlushRequest(BaseModel):
     requestId: str
 
 
-# ── 回调请求模型（存根实现用）─────────────────────────
-
-class CallbackRequest(BaseModel):
-    """5.1.01/02/03 回调请求通用模型。"""
-
-    model_config = ConfigDict(extra="allow")
+# 注：回调请求（5.1.01/02/03）不使用 pydantic 模型，直接在 endpoints/callbacks.py
+# 里读取 raw body 落库，避免第三方 Content-Type / 结构不符时 FastAPI 校验阶段返回 422。
