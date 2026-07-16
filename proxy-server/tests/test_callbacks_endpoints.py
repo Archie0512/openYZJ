@@ -36,6 +36,9 @@ def fake_db(fake_collection):
     """假 db，其 kdcloud_callbacks 属性指向 fake_collection。"""
     db = MagicMock()
     db.kdcloud_callbacks = fake_collection
+    clients = MagicMock()
+    clients.find_one = AsyncMock(return_value=None)  # 默认无匹配 client
+    db.proxy_clients = clients
     return db
 
 
@@ -167,3 +170,31 @@ def test_db_failure_still_acks_200(fake_db, fake_collection):
     assert r.status_code == 200
     assert r.json() == _EXPECTED_ACK
     fake_collection.insert_one.assert_called_once()
+
+
+def test_persist_matches_client_by_system_source(client, fake_db, fake_collection):
+    """落库时按 systemSource 匹配到 client，写入 matched_client_id。"""
+    fake_db.proxy_clients.find_one = AsyncMock(return_value={"client_id": "systemA"})
+    r = client.post(
+        "/api/proxy/v1/callbacks/by-invoice",
+        json={
+            "interfaceCode": "INVOICE.OPEN",
+            "returnCode": "0",
+            "data": {"billNo": "B1", "serialNo": "SN1", "systemSource": "systemA"},
+        },
+    )
+    assert r.status_code == 200
+    doc = fake_collection.insert_one.call_args.args[0]
+    assert doc["system_sources"] == ["systemA"]
+    assert doc["matched_client_id"] == "systemA"
+
+
+def test_persist_no_system_source_leaves_client_none(client, fake_collection):
+    """无 systemSource 时 matched_client_id 为 None，且不查 proxy_clients。"""
+    r = client.post(
+        "/api/proxy/v1/callbacks/by-invoice",
+        json={"interfaceCode": "INVOICE.OPEN", "data": {"billNo": "B1"}},
+    )
+    assert r.status_code == 200
+    doc = fake_collection.insert_one.call_args.args[0]
+    assert doc["matched_client_id"] is None

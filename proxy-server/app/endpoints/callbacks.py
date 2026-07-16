@@ -151,6 +151,26 @@ def _build_doc(
     }
 
 
+async def _match_client_id(system_sources: list) -> str | None:
+    """按金蝶回调的 systemSource 匹配 proxy_client，返回其 client_id（供出站转发定位）。
+
+    proxy_client 注册时 client_name 或 client_id 与 systemSource 保持一致即可。
+    查询失败/无匹配返回 None，不影响落库。
+    """
+    if not system_sources:
+        return None
+    source = system_sources[0]
+    try:
+        client = await mongodb.get_db().proxy_clients.find_one(
+            {"$or": [{"client_name": source}, {"client_id": source}]},
+            {"client_id": 1},
+        )
+        return client["client_id"] if client else None
+    except Exception as e:  # noqa: BLE001
+        log.warning("[proxy] systemSource=%s 匹配 client 失败 err=%s", source, e)
+        return None
+
+
 async def _persist_and_ack(request: Request, tag: str) -> JSONResponse:
     """读原始 body → 解析 → 落库 → 返回金蝶格式 ACK。
 
@@ -159,13 +179,14 @@ async def _persist_and_ack(request: Request, tag: str) -> JSONResponse:
     raw = await request.body()
     parsed, parse_err = _try_parse_json(raw)
     doc = _build_doc(request, tag, raw, parsed, parse_err)
+    doc["matched_client_id"] = await _match_client_id(doc.get("system_sources") or [])
     try:
         await mongodb.get_db().kdcloud_callbacks.insert_one(doc)
         log.info(
             "[proxy] callback/%s 已入库 raw_len=%d interface_code=%s "
-            "serial_nos=%s bill_nos=%s parse_err=%s",
+            "serial_nos=%s bill_nos=%s matched_client=%s parse_err=%s",
             tag, doc["raw_len"], doc["interface_code"],
-            doc["serial_nos"], doc["bill_nos"], parse_err,
+            doc["serial_nos"], doc["bill_nos"], doc["matched_client_id"], parse_err,
         )
     except Exception as e:  # noqa: BLE001 — 降级保护：DB 挂了不能拖累金蝶重推
         log.error(
