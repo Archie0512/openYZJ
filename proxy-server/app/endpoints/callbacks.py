@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import base64
 import json
 import logging
 from datetime import datetime, timezone
@@ -59,12 +60,29 @@ def _client_ip(request: Request) -> str:
     return ""
 
 
+def _decode_data_field(data: Any) -> Any:
+    """把金蝶回调 data 规整为 dict/list。
+
+    金蝶真实报文的 data 是内层 JSON 的 base64 字符串，需先解码；
+    若已是 dict/list（明文）直接返回；解码失败返回 None（打平留空，不影响落库）。
+    """
+    if isinstance(data, (dict, list)):
+        return data
+    if isinstance(data, str) and data:
+        try:
+            return json.loads(base64.b64decode(data))
+        except Exception:  # noqa: BLE001 — 非 base64 或非 JSON，视为无法解析
+            return None
+    return None
+
+
 def _append_from_dict(item: dict, result: dict) -> None:
-    """从单张发票 dict 中提取 serialNo/billNo/batch 追加到 result 打平数组。"""
+    """从单张发票 dict 中提取 serialNo/billNo/batch/systemSource 追加到 result 打平数组。"""
     for key, target in (
         ("serialNo", "serial_nos"),
         ("billNo", "bill_nos"),
         ("batch", "batches"),
+        ("systemSource", "system_sources"),
     ):
         v = item.get(key)
         if v is not None and v != "":
@@ -75,9 +93,11 @@ def _extract_flat_fields(parsed: Any) -> dict[str, Any]:
     """从 parsed body 中提取打平字段，供索引查询。
 
     金蝶回调结构：
-      5.1.02: {interfaceCode, returnCode, returnMsg, data: {serialNo, billNo, ...}}
-      5.1.03: {interfaceCode, returnCode, returnMsg, data: [{serialNo, billNo, batch, ...}, ...]}
+      5.1.02: {interfaceCode, returnCode, returnMsg, data: <单张发票，可能是 base64 字符串>}
+      5.1.03: {interfaceCode, returnCode, returnMsg, data: [<多张发票>]}
       5.1.01: 结构未文档化，尝试按 5.1.02 规则；提取不到则打平字段留空数组。
+
+    data 字段先经 _decode_data_field 规整（金蝶真实报文为 base64 字符串）。
     """
     result: dict[str, Any] = {
         "interface_code": None,
@@ -85,6 +105,7 @@ def _extract_flat_fields(parsed: Any) -> dict[str, Any]:
         "serial_nos": [],
         "bill_nos": [],
         "batches": [],
+        "system_sources": [],
     }
     if not isinstance(parsed, dict):
         return result
@@ -94,7 +115,7 @@ def _extract_flat_fields(parsed: Any) -> dict[str, Any]:
     result["interface_code"] = ic if isinstance(ic, str) else None
     result["return_code"] = rc if isinstance(rc, str) else None
 
-    data = parsed.get("data")
+    data = _decode_data_field(parsed.get("data"))
     if isinstance(data, dict):
         _append_from_dict(data, result)
     elif isinstance(data, list):
