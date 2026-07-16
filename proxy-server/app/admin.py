@@ -13,8 +13,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.admin_auth import require_admin
 from app.crypto import encrypt_secret
-from app import mongodb
+from app import mongodb, runtime_config
 from app.models import (
+    ForwardingConfigReq,
     ProxyClientCreateReq,
     ProxyClientPublic,
     ProxyClientUpdateReq,
@@ -223,3 +224,27 @@ async def get_callback_event(event_id: str) -> dict:
     if not doc:
         raise HTTPException(404, "callback event not found")
     return _serialize(doc)
+
+
+# ═════════════════════════════════════════════════════════════
+# 出站转发运行时开关（proxy_settings，动态可切换免重启）
+# ═════════════════════════════════════════════════════════════
+
+forwarding_config_router = APIRouter(
+    prefix="/api/admin/forwarding-config",
+    tags=["Admin - Forwarding Config"],
+    dependencies=[Depends(require_admin)],
+)
+
+
+@forwarding_config_router.get("")
+async def get_forwarding_config():
+    """查当前自动转发开关。"""
+    return await runtime_config.get_forwarding_config()
+
+
+@forwarding_config_router.put("")
+async def put_forwarding_config(req: ForwardingConfigReq):
+    """动态切换自动转发开关（立即生效，无需重启）。"""
+    await runtime_config.set_auto_forward_enabled(req.auto_forward_enabled)
+    return await runtime_config.get_forwarding_config()

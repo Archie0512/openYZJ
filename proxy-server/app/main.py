@@ -20,7 +20,7 @@ from app.kdcloud_client import init_kdcloud_client, close_kdcloud_client
 from app.token_manager import init_token_manager, start_token_refresh_loop
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
 from app.router import router as proxy_router
-from app.admin import router as admin_router, callback_events_router
+from app.admin import router as admin_router, callback_events_router, forwarding_config_router
 
 # 配置日志
 logging.basicConfig(
@@ -91,6 +91,7 @@ async def health_ready(request: Request):
 # 管理接口（复用 Bearer Token 鉴权）
 app.include_router(admin_router)
 app.include_router(callback_events_router)
+app.include_router(forwarding_config_router)
 
 # 代理 API 路由
 app.include_router(proxy_router)

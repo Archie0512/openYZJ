@@ -166,3 +166,11 @@ class VehicleRedFlushRequest(BaseModel):
 
 # 注：回调请求（5.1.01/02/03）不使用 pydantic 模型，直接在 endpoints/callbacks.py
 # 里读取 raw body 落库，避免第三方 Content-Type / 结构不符时 FastAPI 校验阶段返回 422。
+
+
+# ── 出站转发相关 ──────────────────────────────────
+
+class ForwardingConfigReq(BaseModel):
+    """PUT /api/admin/forwarding-config 入参（运行时自动转发开关）。"""
+
+    auto_forward_enabled: bool
