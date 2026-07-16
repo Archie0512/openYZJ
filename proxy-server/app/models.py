@@ -30,6 +30,7 @@ class ProxyClientDoc(BaseModel):
     status: str = "active"
     allowed_endpoints: list[str] = []
     rate_limit: int = 60
+    callback_url: str = ""
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
 
@@ -42,6 +43,7 @@ class ProxyClientCreateReq(BaseModel):
     api_secret: str
     allowed_endpoints: list[str] = []
     rate_limit: int = 60
+    callback_url: str = ""
 
 
 class ProxyClientUpdateReq(BaseModel):
@@ -52,6 +54,7 @@ class ProxyClientUpdateReq(BaseModel):
     allowed_endpoints: Optional[list[str]] = None
     rate_limit: Optional[int] = None
     status: Optional[str] = None
+    callback_url: Optional[str] = None
 
 
 class ProxyClientPublic(BaseModel):
@@ -62,6 +65,7 @@ class ProxyClientPublic(BaseModel):
     api_key: str
     allowed_endpoints: list[str] = []
     rate_limit: int = 60
+    callback_url: str = ""
     status: str
     created_at: datetime
     updated_at: datetime

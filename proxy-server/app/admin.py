@@ -35,6 +35,7 @@ def _to_public(doc: dict) -> ProxyClientPublic:
         api_key=doc.get("api_key", ""),
         allowed_endpoints=doc.get("allowed_endpoints", []),
         rate_limit=doc.get("rate_limit", 60),
+        callback_url=doc.get("callback_url", ""),
         status=doc.get("status", "active"),
         created_at=doc.get("created_at", datetime.now(timezone.utc)),
         updated_at=doc.get("updated_at", datetime.now(timezone.utc)),
@@ -58,6 +59,7 @@ async def create_proxy_client(req: ProxyClientCreateReq):
         "api_secret_encrypted": encrypt_secret(req.api_secret),
         "allowed_endpoints": req.allowed_endpoints,
         "rate_limit": req.rate_limit,
+        "callback_url": req.callback_url,
         "status": "active",
         "created_at": now,
         "updated_at": now,
@@ -91,7 +93,7 @@ async def update_proxy_client(
     """局部更新代理客户端字段；提供 api_secret 时重新加密。"""
     db = mongodb.get_db()
     update = {"updated_at": datetime.now(timezone.utc)}
-    for field in ("client_name", "allowed_endpoints", "rate_limit", "status"):
+    for field in ("client_name", "allowed_endpoints", "rate_limit", "status", "callback_url"):
         v = getattr(req, field)
         if v is not None:
             update[field] = v
