@@ -77,6 +77,16 @@ def test_replay_unsupported_endpoint(client, fake_cb):
     assert set_doc["forward_status"] == "unsupported"
 
 
+def test_replay_return_code_not_zero_skipped(client, fake_cb):
+    """returnCode=9999 → 标记 skipped 并返回 422。"""
+    fake_cb.find_one = AsyncMock(return_value=_invoice_doc(return_code="9999"))
+    r = client.post(f"/api/admin/callback-events/{_OID}/replay", headers=_AUTH_H)
+    assert r.status_code == 422
+    fake_cb.update_one.assert_awaited()
+    set_doc = fake_cb.update_one.call_args.args[1]["$set"]
+    assert set_doc["forward_status"] == "skipped"
+
+
 def test_replay_no_target_url(client, fake_cb):
     """无 target_url、无 client callback_url → 400。"""
     fake_cb.find_one = AsyncMock(return_value=_invoice_doc())

@@ -178,11 +178,22 @@ async def _safe_auto_forward(event_id) -> None:
     """自动转发（fire-and-forget）：查 doc → 用 matched_client_id 的 callback_url 转发。
 
     仅在开关开启且 endpoint==by-invoice 时被调度；失败只记日志，不重试。
+    returnCode != "0"（开票失败通知）直接标记 skipped，不转发。
     """
     try:
         db = mongodb.get_db()
         doc = await db.kdcloud_callbacks.find_one({"_id": event_id})
         if not doc:
+            return
+        if doc.get("return_code") not in (None, "0"):
+            await db.kdcloud_callbacks.update_one(
+                {"_id": event_id},
+                {"$set": {"forward_status": "skipped"}},
+            )
+            log.info(
+                "[proxy] 自动转发跳过 event=%s returnCode=%s",
+                event_id, doc.get("return_code"),
+            )
             return
         cid = doc.get("matched_client_id")
         target_url = ""

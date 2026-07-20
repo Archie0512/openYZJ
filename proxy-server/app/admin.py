@@ -264,6 +264,12 @@ async def replay_callback_event(event_id: str, req: ReplayReq | None = None):
         )
         raise HTTPException(422, f"endpoint={doc.get('endpoint')} 不支持转发（仅 by-invoice）")
 
+    if doc.get("return_code") not in (None, "0"):
+        await db.kdcloud_callbacks.update_one(
+            {"_id": oid}, {"$set": {"forward_status": "skipped"}}
+        )
+        raise HTTPException(422, f"returnCode={doc.get('return_code')}！=0，开票未成功，跳过转发")
+
     req = req or ReplayReq()
     target_url = await _resolve_replay_target(db, doc, req.target_url, req.client_id)
     if not target_url:
