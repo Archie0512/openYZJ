@@ -10,6 +10,10 @@
 多单据合并开票处理：当金蝶内层 billNo 为逗号拼接（多张 EAS 单据合开一张发票）时，
 按 invoiceDetail 逐行拆分，每张单据携带对应明细行的 amount/taxAmount 独立转发。
 拆分前校验 invoiceDetail 行数与 split 后的 billNo 数量一致，不一致则标 unsupported。
+
+机动车销售统一发票处理：机动车回调无 billNo（EAS 单据号在 serialNo）、发票号码字段为
+invoiceNo、不含税金额在 invoiceAmount（totalAmount 为价税合计）、版式文件为 invoiceFileUrl。
+转发时按此映射到 System A 的 billNo/invoiceNum/totalAmount/invoicePdfFileUrl，一车一票不拆分。
 依据：docs/systemA_InvoiceCallback_接口文档.md。
 """
 from __future__ import annotations
@@ -79,27 +83,74 @@ def _build_outer(parsed: dict, inner_b64: str) -> dict:
     return outer
 
 
+def _b64(inner: dict) -> str:
+    """把内层 dict 序列化为 System A 期望的 base64 字符串。"""
+    return base64.b64encode(
+        json.dumps(inner, ensure_ascii=False).encode("utf-8")
+    ).decode("utf-8")
+
+
+def _is_vehicle(invoice: dict) -> bool:
+    """机动车销售统一发票判定：以车架号 / 车辆UUID 为准（VIN 为机动车发票必填）。"""
+    return bool(invoice.get("vehicleIdentificationCode") or invoice.get("vehicleUuid"))
+
+
+def _build_inner(invoice: dict, bill_no: str, total_amount: Any, total_tax_amount: Any) -> dict:
+    """按 System A 需要的 7 字段组装内层，兼容机动车字段名差异。
+
+    字段差异（见 docs/systemA_InvoiceCallback_接口文档.md 3.2）：
+    - 发票号码：增值税为 invoiceNum，机动车为 invoiceNo；
+    - 版式文件：增值税为 invoicePdfFileUrl，机动车为 invoiceFileUrl；
+    - 开票日期：机动车带时间（yyyy-MM-dd HH:mm:ss.S），统一截断为 yyyy-MM-dd。
+    金额由调用方按票种传入（机动车不含税取 invoiceAmount，增值税取 totalAmount）。
+    """
+    invoice_date = invoice.get("invoiceDate")
+    if isinstance(invoice_date, str) and len(invoice_date) >= 10:
+        invoice_date = invoice_date[:10]
+    inner = {
+        "billNo": bill_no,
+        "invoiceDate": invoice_date,
+        "invoiceNum": invoice.get("invoiceNum") or invoice.get("invoiceNo"),
+        "totalAmount": total_amount,
+        "totalTaxAmount": total_tax_amount,
+        "invoicePdfFileUrl": invoice.get("invoicePdfFileUrl") or invoice.get("invoiceFileUrl"),
+        "drawer": invoice.get("drawer"),
+    }
+    return {k: v for k, v in inner.items() if v is not None}
+
+
 def _build_system_a_payloads(parsed: dict) -> list[dict]:
     """组装 System A payload 列表。
 
-    单张发票 → list 长度 1。
-    多单据合并（billNo 含逗号）→ 逐张拆分，每张取对应 invoiceDetail 行的金额。
+    - 增值税单张 → list 长度 1，用 totalAmount（不含税）。
+    - 增值税多单据合并（billNo 含逗号）→ 逐张拆分，每张取对应 invoiceDetail 行金额。
+    - 机动车（无 billNo，单据号在 serialNo）→ billNo←serialNo，不含税取 invoiceAmount，一车一票不拆分。
     拆分前校验 invoiceDetail 行数 == split 后的 billNo 数量，不一致抛 ForwardUnsupportedError。
     """
     invoice = _decode_invoice(parsed)
-    bill_no_raw = invoice.get("billNo", "")
+    # 机动车无 billNo，EAS 单据号放在 serialNo，用其兜底定位单据
+    bill_no_raw = (invoice.get("billNo") or invoice.get("serialNo") or "").strip()
     if not bill_no_raw:
-        raise ForwardUnsupportedError("发票数据缺少 billNo，System A 无法定位单据")
+        raise ForwardUnsupportedError("发票数据缺少 billNo/serialNo，System A 无法定位单据")
+
+    # 机动车：字段名与金额语义不同，且一车一票不拆分
+    if _is_vehicle(invoice):
+        inner = _build_inner(
+            invoice, bill_no_raw,
+            invoice.get("invoiceAmount"),   # 机动车不含税金额（totalAmount 是价税合计）
+            invoice.get("totalTaxAmount"),
+        )
+        return [_build_outer(parsed, _b64(inner))]
 
     if "," not in bill_no_raw:
-        # 单张：原有逻辑，用总金额
-        inner = {k: invoice[k] for k in _INNER_FIELDS if invoice.get(k) is not None}
-        inner_b64 = base64.b64encode(
-            json.dumps(inner, ensure_ascii=False).encode("utf-8")
-        ).decode("utf-8")
-        return [_build_outer(parsed, inner_b64)]
+        inner = _build_inner(
+            invoice, bill_no_raw,
+            invoice.get("totalAmount"),
+            invoice.get("totalTaxAmount"),
+        )
+        return [_build_outer(parsed, _b64(inner))]
 
-    # ── 多单据拆分 ─────────────────────────────────
+    # ── 多单据拆分（增值税，billNo 逗号拼接）─────────────
     bill_nos = [b.strip() for b in bill_no_raw.split(",")]
     details = invoice.get("invoiceDetail", [])
     if len(bill_nos) != len(details):
@@ -111,20 +162,8 @@ def _build_system_a_payloads(parsed: dict) -> list[dict]:
     payloads = []
     for i, bill_no in enumerate(bill_nos):
         detail = details[i]
-        inner = {
-            "billNo": bill_no,
-            "invoiceDate": invoice.get("invoiceDate"),
-            "invoiceNum": invoice.get("invoiceNum"),
-            "totalAmount": detail.get("amount"),
-            "totalTaxAmount": detail.get("taxAmount"),
-            "invoicePdfFileUrl": invoice.get("invoicePdfFileUrl"),
-            "drawer": invoice.get("drawer"),
-        }
-        inner = {k: v for k, v in inner.items() if v is not None}
-        inner_b64 = base64.b64encode(
-            json.dumps(inner, ensure_ascii=False).encode("utf-8")
-        ).decode("utf-8")
-        payloads.append(_build_outer(parsed, inner_b64))
+        inner = _build_inner(invoice, bill_no, detail.get("amount"), detail.get("taxAmount"))
+        payloads.append(_build_outer(parsed, _b64(inner)))
 
     log.info(
         "[forwarder] 多单据拆分 %d 张: %s",

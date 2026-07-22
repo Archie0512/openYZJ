@@ -89,6 +89,57 @@ def test_build_single_omits_absent_optional_fields():
     assert decoded == {"billNo": "B1"}
 
 
+# ── _build_system_a_payloads 机动车 ────────────────
+
+def test_build_vehicle_field_mapping():
+    """机动车：billNo←serialNo、invoiceNum←invoiceNo、不含税←invoiceAmount、PDF←invoiceFileUrl。"""
+    inner = {
+        "serialNo": "AR-B04A-2026028079",
+        "invoiceNo": "26322000005935198201",
+        "invoiceAmount": "283805.31",   # 不含税
+        "totalAmount": "320700",         # 价税合计（陷阱）
+        "totalTaxAmount": "36894.69",
+        "invoiceDate": "2026-07-21 09:06:22.0",
+        "invoiceFileUrl": "https://api.piaozone.com/rpa/free/preview/x/vehicle?type=0",
+        "ofdFileUrl": "https://api.piaozone.com/rpa/free/preview/x/vehicle?type=1",
+        "drawer": "谢媛",
+        "vehicleIdentificationCode": "LBV21FM02TSK50591",
+        "systemSource": "BD_EAS850",
+    }
+    parsed = {"interfaceCode": "INVOICE.OPEN", "returnCode": "0", "data": _b64(inner)}
+    payloads = _build_system_a_payloads(parsed)
+    assert len(payloads) == 1
+    decoded = json.loads(base64.b64decode(payloads[0]["data"]))
+    assert set(decoded.keys()) <= set(_INNER_FIELDS)
+    assert decoded["billNo"] == "AR-B04A-2026028079"
+    assert decoded["invoiceNum"] == "26322000005935198201"
+    # 不含税必须取 invoiceAmount，绝不能是价税合计 320700
+    assert decoded["totalAmount"] == "283805.31"
+    assert decoded["totalTaxAmount"] == "36894.69"
+    assert decoded["invoicePdfFileUrl"].endswith("type=0")
+    assert decoded["invoiceDate"] == "2026-07-21"
+    assert decoded["drawer"] == "谢媛"
+    # 中转字段不外汄
+    assert "serialNo" not in decoded and "invoiceNo" not in decoded
+
+
+def test_build_vehicle_detected_by_vehicle_uuid():
+    """无车架号但有 vehicleUuid 也判定为机动车。"""
+    inner = {
+        "serialNo": "AR-B04A-2026028080",
+        "invoiceNo": "26322000005935198202",
+        "invoiceAmount": "100.00",
+        "totalAmount": "113.00",
+        "totalTaxAmount": "13.00",
+        "vehicleUuid": "1779264818165577756",
+    }
+    parsed = {"data": _b64(inner)}
+    decoded = json.loads(base64.b64decode(_build_system_a_payloads(parsed)[0]["data"]))
+    assert decoded["billNo"] == "AR-B04A-2026028080"
+    assert decoded["invoiceNum"] == "26322000005935198202"
+    assert decoded["totalAmount"] == "100.00"
+
+
 # ── _build_system_a_payloads 多单据拆分 ─────────────
 
 def test_build_multi_split_4():
