@@ -25,6 +25,14 @@ build/
 # 示例/模板文件（从外部工具导出，仅供本地参考）
 docs/template.json
 
+# 本地资料文件（第三方文档/图片素材，仅本地参考，不入库）
+docs/RPA Third Api V4.doc
+docs/kdcloud_md.md
+docs/logo/
+docs/mys4S/
+docs/rpa_third_api_v4.md
+docs/开发一个小程序.md
+
 # 日志
 *.log
 
