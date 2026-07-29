@@ -1,6 +1,6 @@
-# OpenYZJ API 接口文档（香港 ECS 测试环境）
+# OpenYZJ API 接口文档
 
-> 域名：`https://kimpi.cn` | 环境：test | 分支：`feature/proxy-gateway`
+> ⚠️ 原测试环境（香港 ECS，kimpi.cn）已停用。本文档将根据新测试环境配置进行更新。
 
 ---
 
